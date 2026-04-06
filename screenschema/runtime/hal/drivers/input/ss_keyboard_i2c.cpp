@@ -61,20 +61,31 @@ void SSKeyboardI2C::read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
 }
 
 esp_err_t SSKeyboardI2C::init() {
-    // I2C bus is shared with GT911 touch — it installs the driver first.
-    // If already installed, i2c_driver_install returns ESP_ERR_INVALID_STATE.
-    i2c_config_t i2c_conf = {
-        .mode             = I2C_MODE_MASTER,
-        .sda_io_num       = cfg_.sda_gpio,
-        .scl_io_num       = cfg_.scl_gpio,
-        .sda_pullup_en    = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en    = GPIO_PULLUP_ENABLE,
-        .master           = { .clk_speed = 400000 },
-        .clk_flags        = 0,
-    };
-    i2c_param_config(I2C_NUM_0, &i2c_conf);
+    // I2C bus is typically shared with the touch driver (e.g. GT911 on T-Deck),
+    // which is initialized first as part of HAL init.  Detect this by attempting
+    // to install the legacy driver — ESP_FAIL means another driver got here
+    // first and we just reuse the existing bus configuration.
+    //
+    // CRITICAL: do NOT call i2c_param_config before the install check on shared
+    // buses.  param_config reconfigures the live port state and stomps any
+    // existing driver's pin/clock settings, putting the bus into a bad state.
+    // Only configure when we successfully install fresh.
     esp_err_t ret = i2c_driver_install(I2C_NUM_0, I2C_MODE_MASTER, 0, 0, 0);
-    if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE) {
+    if (ret == ESP_OK) {
+        i2c_config_t i2c_conf = {
+            .mode             = I2C_MODE_MASTER,
+            .sda_io_num       = cfg_.sda_gpio,
+            .scl_io_num       = cfg_.scl_gpio,
+            .sda_pullup_en    = GPIO_PULLUP_ENABLE,
+            .scl_pullup_en    = GPIO_PULLUP_ENABLE,
+            .master           = { .clk_speed = 400000 },
+            .clk_flags        = 0,
+        };
+        i2c_param_config(I2C_NUM_0, &i2c_conf);
+        ESP_LOGI(TAG, "I2C bus initialized for keyboard (first user)");
+    } else if (ret == ESP_FAIL || ret == ESP_ERR_INVALID_STATE) {
+        ESP_LOGI(TAG, "I2C bus already initialized — sharing with touch driver");
+    } else {
         ESP_LOGE(TAG, "I2C driver install failed: %s", esp_err_to_name(ret));
         return ret;
     }

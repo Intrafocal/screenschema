@@ -291,8 +291,11 @@ extern "C" void app_main(void) {
         .scl_gpio       = {{ touch_scl }},
     };
     SSKeyboardI2C keyboard(kbd_cfg);
-    keyboard.init();
-    lv_indev_set_group(keyboard.lv_indev(), input_group);
+    if (keyboard.init() == ESP_OK) {
+        lv_indev_set_group(keyboard.lv_indev(), input_group);
+    } else {
+        ESP_LOGE(TAG, "Keyboard init failed — keyboard input disabled");
+    }
 {% endif %}
 {% if has_trackball %}
     // GPIO Trackball (D3)
@@ -304,8 +307,11 @@ extern "C" void app_main(void) {
         .pin_click = {{ trackball_pin_click }},
     };
     SSTrackballGPIO trackball(tb_cfg);
-    trackball.init();
-    lv_indev_set_group(trackball.lv_indev(), input_group);
+    if (trackball.init() == ESP_OK) {
+        lv_indev_set_group(trackball.lv_indev(), input_group);
+    } else {
+        ESP_LOGE(TAG, "Trackball init failed — trackball input disabled");
+    }
 {% endif %}
 
 {% if has_battery %}
