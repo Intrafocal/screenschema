@@ -10,5 +10,5 @@ idf_component_register(
 {% endfor %}
         "handlers.cpp"
     INCLUDE_DIRS "."
-    REQUIRES runtime esp-brookesia lvgl nvs_flash
+    REQUIRES runtime esp-brookesia lvgl nvs_flash{% for r in main_requires %} {{ r }}{% endfor %}
 )

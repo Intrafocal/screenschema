@@ -74,6 +74,23 @@
           }
         }
       }
+    },
+    "build": {
+      "type": "object",
+      "description": "ESP-IDF build customisation hooks",
+      "additionalProperties": false,
+      "properties": {
+        "extra_component_dirs": {
+          "type": "array",
+          "description": "Additional component directories appended to EXTRA_COMPONENT_DIRS. Paths are resolved relative to the screenschema.yaml file.",
+          "items": { "type": "string" }
+        },
+        "main_requires": {
+          "type": "array",
+          "description": "Additional component names appended to the main component's REQUIRES list (for handler dependencies).",
+          "items": { "type": "string" }
+        }
+      }
     }
   },
   "definitions": {

@@ -1,3 +1,4 @@
+import os
 import pathlib
 from typing import Dict, Any
 from jinja2 import Environment, FileSystemLoader
@@ -19,7 +20,7 @@ def generate(schema: Dict[str, Any], board: Dict[str, Any], out_dir: pathlib.Pat
     env.filters["snake_to_pascal"] = snake_to_pascal
 
     # Prepare context for templates
-    ctx = _build_context(schema, board, project_dir)
+    ctx = _build_context(schema, board, project_dir, out_dir)
 
     main_dir = out_dir / "main"
     main_dir.mkdir(parents=True, exist_ok=True)
@@ -82,7 +83,7 @@ def generate_sim(schema: Dict[str, Any], board: Dict[str, Any], out_dir: pathlib
     )
     env.filters["snake_to_pascal"] = snake_to_pascal
 
-    ctx = _build_context(schema, board, project_dir)
+    ctx = _build_context(schema, board, project_dir, out_dir)
 
     # Process icons (same as normal build)
     main_dir = out_dir / "main"
@@ -133,7 +134,7 @@ def _render(env, template_name: str, ctx: dict, out_path: pathlib.Path):
     out_path.write_text(tmpl.render(**ctx))
 
 
-def _build_context(schema: dict, board: dict, project_dir: pathlib.Path) -> dict:
+def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir: pathlib.Path) -> dict:
     apps = []
     all_handlers = set()
 
@@ -182,6 +183,21 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path) -> dict
     keyboard = board.get("keyboard", {})
     trackball = board.get("trackball", {})
     battery = board.get("battery", {})
+
+    # Build customisation (N1/N2/N3) — paths are emitted relative to the
+    # generated CMakeLists.txt (which lives in out_dir) so the project remains
+    # portable across machines and CI checkouts.
+    screenschema_dir_abs = pathlib.Path(__file__).parent.parent.resolve()
+    relative_screenschema_dir = os.path.relpath(screenschema_dir_abs, start=out_dir)
+
+    build_cfg = schema.get("build", {})
+    extra_component_dirs = []
+    for p in build_cfg.get("extra_component_dirs", []):
+        # User-provided paths are relative to the screenschema.yaml file (project_dir).
+        # Translate to be relative to out_dir so CMAKE_CURRENT_LIST_DIR resolves correctly.
+        abs_p = (project_dir / p).resolve() if not os.path.isabs(p) else pathlib.Path(p)
+        extra_component_dirs.append(os.path.relpath(abs_p, start=out_dir))
+    main_requires = list(build_cfg.get("main_requires", []))
 
     # system_app: true | false | {wifi: true, ota: true}
     sys_app_raw = shell.get("system_app", False)
@@ -282,7 +298,10 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path) -> dict
         "serial_bridge_enabled": board.get("serial_bridge", {}).get("enabled", False),
         "serial_bridge_uart":    board.get("serial_bridge", {}).get("uart", "UART_NUM_0"),
         "serial_bridge_baud":    board.get("serial_bridge", {}).get("baud", 115200),
-        "screenschema_dir": str(pathlib.Path(__file__).parent.parent.resolve()),
+        "screenschema_dir": str(screenschema_dir_abs),
+        "relative_screenschema_dir": relative_screenschema_dir,
+        "extra_component_dirs": extra_component_dirs,
+        "main_requires": main_requires,
         # Device identity
         "device_id":            device_id,
         "device_location":      device_location,
