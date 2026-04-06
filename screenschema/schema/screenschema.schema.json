@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://screenschema/schema/screenschema.schema.json",
+  "title": "ScreenSchema Project",
+  "description": "Validates the top-level screenschema.yaml project file",
+  "type": "object",
+  "required": ["schema_version", "board", "apps"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "ScreenSchema YAML format version (e.g. '1.0')"
+    },
+    "board": {
+      "type": "string",
+      "description": "Board profile id (matches a file in boards/)"
+    },
+    "shell": {
+      "type": "object",
+      "description": "Global shell / OS chrome configuration",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {
+          "type": "string",
+          "enum": ["dark", "light", "custom"],
+          "default": "dark"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": ["portrait", "landscape", "portrait_inverted", "landscape_inverted"],
+          "default": "portrait"
+        },
+        "status_bar": {
+          "type": "boolean",
+          "default": true
+        },
+        "navigation": {
+          "type": "string",
+          "enum": ["gesture", "bar", "none"],
+          "default": "gesture"
+        }
+      }
+    },
+    "imports": {
+      "type": "array",
+      "description": "Paths to additional YAML files to import (components, shared widgets)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "apps": {
+      "type": "array",
+      "description": "List of app screens registered with the shell",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/app"
+      }
+    },
+    "assets": {
+      "type": "object",
+      "description": "Fonts and images to include in the build",
+      "additionalProperties": false,
+      "properties": {
+        "fonts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "app": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Unique app identifier (snake_case)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name shown in the launcher"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Path to icon image asset"
+        },
+        "layout": {
+          "type": "string",
+          "description": "Built-in layout name or path to custom layout YAML"
+        },
+        "widgets": {
+          "type": "array",
+          "description": "Widget tree for this app screen",
+          "items": {
+            "$ref": "#/definitions/widget"
+          }
+        },
+        "on_init": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "description": "C function called when the app is first created"
+        },
+        "on_resume": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "description": "C function called when the app becomes visible"
+        },
+        "on_pause": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "description": "C function called when the app is hidden"
+        },
+        "on_close": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "description": "C function called when the app is destroyed"
+        }
+      }
+    },
+    "widget": {
+      "type": "object",
+      "required": ["id", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique widget identifier within the app"
+        },
+        "type": {
+          "type": "string",
+          "description": "Widget type (label, button, slider, toggle, image, dropdown, or component name)"
+        }
+      }
+    }
+  }
+}

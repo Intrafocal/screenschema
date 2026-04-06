@@ -1,0 +1,71 @@
+id: esp32s3-es3c28p
+description: "QD Electronic ES3C28P 2.8\" ESP32-S3 ILI9341 320x240 (FT6236 capacitive touch)"
+chip: esp32s3
+
+display:
+  width: 240
+  height: 320
+  driver: ili9341
+  interface: spi
+  orientation: portrait
+  color_depth: 16
+  spi_host: SPI2_HOST
+  pin_cs: 10
+  pin_dc: 46
+  pin_rst: -1        # tied to EN, not a GPIO
+  pin_sclk: 12
+  pin_mosi: 11
+  pin_miso: 13
+  backlight_gpio: 45
+  rotation: 0
+  mirror_x: true
+  mirror_y: false
+
+touch:
+  driver: ft6236
+  interface: i2c
+  sda: 16
+  scl: 15
+  rst_gpio: 18
+  int_gpio: 17
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+audio:
+  driver: es8311              # es8311 | i2s | none
+  codec_i2c_addr: 0x18
+  i2s_port: 0
+  sample_rate: 16000
+  bits: 16
+  pin_mck: 4                  # MCLK via LEDC PWM (256 * sample_rate)
+  pin_bck: 5
+  pin_ws: 7
+  pin_dout: 8                 # Speaker data (to codec DAC)
+  pin_din: 6                  # Mic data (from codec ADC)
+  amp_enable_gpio: 1
+  amp_active_low: true        # FM8002E amplifier, active LOW
+
+memory:
+  flash_mb: 16
+  psram_mb: 8
+  psram_mode: oct    # ESP32-S3 embedded octal SPIRAM
+  lvgl_buf_kb: 40
+
+system:
+  main_task_stack_size: 8192
+
+brookesia:
+  stylesheet: ESP_BROOKESIA_PHONE_320_480_DARK_STYLESHEET  # closest portrait option; native is 240x320
+  gesture_navigation_back: true
+
+wifi:
+  driver: native
+
+ota:
+  manifest_url: "http://ota.example.local:3333/manifest/esp32s3-es3c28p"
+
+serial_bridge:
+  enabled: true
+  uart: UART_NUM_0
+  baud: 115200

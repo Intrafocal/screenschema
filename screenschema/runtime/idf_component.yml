@@ -1,0 +1,13 @@
+version: "0.1.0"
+description: "ScreenSchema runtime library — HAL + core for YAML-driven ESP32 UI"
+url: "https://github.com/intrafocal/screenschema"
+dependencies:
+  lvgl/lvgl: ">=8.3.0,<9.0.0"
+  espressif/esp-brookesia: ">=0.3.0"
+  espressif/esp_lcd_touch_gt911: ">=1.0.0"
+  espressif/esp_lcd_touch_ft5x06: ">=1.0.0"
+  espressif/esp_lcd_st7701: ">=1.0.0"
+  espressif/esp_lcd_ili9341: ">=1.0.0"
+  idf: ">=5.3.0"
+  espressif/esp_websocket_client: ">=1.1.0"
+  espressif/mdns: ">=1.0.0"

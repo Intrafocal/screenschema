@@ -1,0 +1,14 @@
+layout:
+  name: dashboard
+  description: "Grid layout dividing the screen into cells."
+  config_schema:
+    columns:
+      type: integer
+      default: 2
+    rows:
+      type: integer
+      default: 2
+    gap:
+      type: integer
+      default: 8
+  implementation: builtin

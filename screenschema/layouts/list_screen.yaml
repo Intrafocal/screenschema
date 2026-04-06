@@ -1,0 +1,5 @@
+layout:
+  name: list_screen
+  description: "Full-screen scrollable list. Items added at runtime or from YAML."
+  config_schema: {}
+  implementation: builtin

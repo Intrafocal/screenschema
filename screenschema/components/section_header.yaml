@@ -1,0 +1,23 @@
+component:
+  name: section_header
+  description: "Section title divider for settings screens"
+
+  props:
+    title:
+      type: string
+      required: true
+    color:
+      type: color
+      default: "#3A86FF"
+
+  size: ["LV_PCT(100)", 32]
+
+  template:
+    - type: label
+      id: "{{id}}_title"
+      text: "{{title}}"
+      align: left_mid
+      offset: [12, 0]
+      style:
+        font: roboto_14
+        color: "{{color}}"

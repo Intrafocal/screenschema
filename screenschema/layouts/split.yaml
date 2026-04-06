@@ -1,0 +1,12 @@
+layout:
+  name: split
+  description: "Two-panel layout (left/right or top/bottom)."
+  config_schema:
+    direction:
+      type: string
+      enum: [horizontal, vertical]
+      default: horizontal
+    ratio:
+      type: string
+      default: "50/50"
+  implementation: builtin

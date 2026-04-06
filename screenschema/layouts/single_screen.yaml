@@ -1,0 +1,5 @@
+layout:
+  name: single_screen
+  description: "Freeform layout. Widgets positioned with align + offset."
+  config_schema: {}
+  implementation: builtin

@@ -1,0 +1,401 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://screenschema/schema/board.schema.json",
+  "title": "ScreenSchema Board Profile",
+  "description": "Validates a board profile YAML file in boards/",
+  "type": "object",
+  "required": ["id", "description", "chip", "display", "touch", "memory", "brookesia", "serial_bridge"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique board identifier (used as the 'board' field in screenschema.yaml)",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable board description"
+    },
+    "chip": {
+      "type": "string",
+      "description": "ESP32 chip variant",
+      "enum": ["esp32", "esp32s2", "esp32s3", "esp32c3", "esp32c6", "esp32h2", "esp32p4"]
+    },
+    "display": {
+      "type": "object",
+      "required": ["driver", "width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "driver": {
+          "description": "Display driver name, or null for no built-in display",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Horizontal resolution in pixels"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Vertical resolution in pixels"
+        },
+        "interface": {
+          "type": "string",
+          "enum": ["spi", "i2c", "i8080", "rgb", "mipi_dsi"],
+          "description": "Bus interface type"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": ["portrait", "landscape", "portrait_inverted", "landscape_inverted"],
+          "default": "portrait"
+        },
+        "color_depth": {
+          "type": "integer",
+          "enum": [1, 4, 8, 16, 18, 24],
+          "description": "Bits per pixel"
+        },
+        "backlight_gpio": {
+          "type": "integer",
+          "description": "GPIO number for backlight control, -1 if not controllable"
+        },
+        "spi_host": {
+          "type": "string",
+          "enum": ["SPI1_HOST", "SPI2_HOST", "SPI3_HOST"],
+          "description": "SPI peripheral to use (SPI interface only)"
+        },
+        "pin_cs": {
+          "type": "integer",
+          "description": "SPI chip-select GPIO"
+        },
+        "pin_dc": {
+          "type": "integer",
+          "description": "SPI data/command GPIO"
+        },
+        "pin_rst": {
+          "type": "integer",
+          "description": "Reset GPIO (-1 if tied high)"
+        },
+        "pin_sclk": {
+          "type": "integer",
+          "description": "SPI clock GPIO"
+        },
+        "pin_mosi": {
+          "type": "integer",
+          "description": "SPI MOSI GPIO"
+        },
+        "swap_xy": {
+          "type": "boolean",
+          "default": false
+        },
+        "mirror_x": {
+          "type": "boolean",
+          "default": false
+        },
+        "mirror_y": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": ["driver"],
+      "additionalProperties": false,
+      "properties": {
+        "driver": {
+          "description": "Touch controller driver name, or null for no touch",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
+        "interface": {
+          "type": "string",
+          "enum": ["i2c", "spi"],
+          "description": "Bus interface type for touch controller"
+        },
+        "sda": {
+          "type": "integer",
+          "description": "I2C SDA GPIO"
+        },
+        "scl": {
+          "type": "integer",
+          "description": "I2C SCL GPIO"
+        },
+        "spi_host": {
+          "type": "string",
+          "enum": ["SPI1_HOST", "SPI2_HOST", "SPI3_HOST"],
+          "description": "SPI peripheral (SPI touch only)"
+        },
+        "pin_cs": {
+          "type": "integer",
+          "description": "SPI chip-select GPIO (SPI touch only)"
+        },
+        "pin_irq": {
+          "type": "integer",
+          "description": "Interrupt GPIO (SPI touch only)"
+        },
+        "rst_gpio": {
+          "type": "integer",
+          "description": "Reset GPIO (-1 if not connected)"
+        },
+        "int_gpio": {
+          "type": "integer",
+          "description": "Interrupt GPIO (-1 if not connected)"
+        },
+        "swap_xy": {
+          "type": "boolean",
+          "default": false
+        },
+        "mirror_x": {
+          "type": "boolean",
+          "default": false
+        },
+        "mirror_y": {
+          "type": "boolean",
+          "default": false
+        },
+        "cal_min_x": {
+          "type": "integer",
+          "description": "Resistive touch calibration: raw min X"
+        },
+        "cal_max_x": {
+          "type": "integer",
+          "description": "Resistive touch calibration: raw max X"
+        },
+        "cal_min_y": {
+          "type": "integer",
+          "description": "Resistive touch calibration: raw min Y"
+        },
+        "cal_max_y": {
+          "type": "integer",
+          "description": "Resistive touch calibration: raw max Y"
+        }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "description": "Audio I/O configuration (R2.1). Use driver=es8311 for codec-based boards, driver=i2s for bare I2S mic/speaker.",
+      "properties": {
+        "driver": {
+          "type": "string",
+          "enum": ["es8311", "i2s", "none"],
+          "description": "Audio driver: es8311 (codec), i2s (bare), or none"
+        },
+        "codec_i2c_addr": {
+          "type": "integer",
+          "default": 24,
+          "description": "I2C address of audio codec (es8311 only)"
+        },
+        "i2s_port": {
+          "type": "integer",
+          "enum": [0, 1],
+          "default": 0,
+          "description": "I2S peripheral number"
+        },
+        "sample_rate": {
+          "type": "integer",
+          "default": 16000,
+          "description": "Sample rate in Hz"
+        },
+        "bits": {
+          "type": "integer",
+          "enum": [16, 32],
+          "default": 16
+        },
+        "pin_mck": {
+          "type": "integer",
+          "description": "Master clock GPIO (es8311: LEDC PWM)"
+        },
+        "pin_bck": {
+          "type": "integer",
+          "description": "Bit clock GPIO"
+        },
+        "pin_ws": {
+          "type": "integer",
+          "description": "Word select / LRCLK GPIO"
+        },
+        "pin_dout": {
+          "type": "integer",
+          "description": "Data out GPIO (speaker)"
+        },
+        "pin_din": {
+          "type": "integer",
+          "description": "Data in GPIO (mic)"
+        },
+        "amp_enable_gpio": {
+          "type": "integer",
+          "default": -1,
+          "description": "Amplifier enable GPIO (-1 if none)"
+        },
+        "amp_active_low": {
+          "type": "boolean",
+          "default": true,
+          "description": "True if amplifier is active LOW"
+        },
+        "mic": {
+          "type": "object",
+          "description": "Bare I2S mic config (driver=i2s only)",
+          "properties": {
+            "driver": { "type": "string", "enum": ["i2s_pdm", "i2s_std", "none"] },
+            "sample_rate": { "type": "integer", "default": 16000 },
+            "bits": { "type": "integer", "enum": [16, 32], "default": 16 },
+            "pin_clk": { "type": "integer" },
+            "pin_data": { "type": "integer" },
+            "pin_ws": { "type": "integer" },
+            "gain_db": { "type": "integer", "default": 0 },
+            "i2s_port": { "type": "integer", "enum": [0, 1], "default": 0 }
+          }
+        },
+        "speaker": {
+          "type": "object",
+          "description": "Bare I2S speaker config (driver=i2s only)",
+          "properties": {
+            "driver": { "type": "string", "enum": ["i2s_std", "none"] },
+            "sample_rate": { "type": "integer", "default": 16000 },
+            "bits": { "type": "integer", "enum": [16, 32], "default": 16 },
+            "pin_bclk": { "type": "integer" },
+            "pin_lrclk": { "type": "integer" },
+            "pin_data": { "type": "integer" },
+            "amp_enable_gpio": { "type": "integer", "default": -1 },
+            "i2s_port": { "type": "integer", "enum": [0, 1], "default": 1 }
+          }
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "required": ["flash_mb", "psram_mb", "lvgl_buf_kb"],
+      "additionalProperties": false,
+      "properties": {
+        "flash_mb": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Flash size in megabytes"
+        },
+        "psram_mb": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "PSRAM size in megabytes (0 if no PSRAM)"
+        },
+        "lvgl_buf_kb": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "LVGL render buffer size in kilobytes"
+        }
+      }
+    },
+    "brookesia": {
+      "type": "object",
+      "required": ["stylesheet"],
+      "additionalProperties": false,
+      "properties": {
+        "stylesheet": {
+          "type": "string",
+          "description": "esp-brookesia stylesheet constant name"
+        }
+      }
+    },
+    "serial_bridge": {
+      "type": "object",
+      "required": ["enabled", "uart", "baud"],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "uart": {
+          "type": "string",
+          "enum": ["UART_NUM_0", "UART_NUM_1", "UART_NUM_2"],
+          "description": "UART peripheral for the serial bridge"
+        },
+        "baud": {
+          "type": "integer",
+          "description": "Baud rate for serial bridge"
+        }
+      }
+    },
+    "early_init": {
+      "type": "object",
+      "description": "Board-specific early initialization before HAL init (e.g., power gates)",
+      "additionalProperties": false,
+      "properties": {
+        "gpio_set_high": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "GPIOs to drive HIGH before any peripheral init"
+        },
+        "gpio_set_low": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "GPIOs to drive LOW before any peripheral init"
+        }
+      }
+    },
+    "keyboard": {
+      "type": "object",
+      "description": "I2C keyboard input device",
+      "additionalProperties": false,
+      "properties": {
+        "driver": {
+          "type": "string",
+          "enum": ["i2c_keypad", "none"],
+          "description": "Keyboard driver type"
+        },
+        "i2c_addr": {
+          "type": "integer",
+          "description": "I2C address of keyboard controller"
+        },
+        "int_gpio": {
+          "type": "integer",
+          "description": "Interrupt GPIO (active low when key pressed)"
+        },
+        "backlight_control": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether keyboard supports I2C backlight brightness control"
+        }
+      },
+      "required": ["driver"]
+    },
+    "battery": {
+      "type": "object",
+      "description": "Battery monitoring via ADC (D9)",
+      "additionalProperties": false,
+      "properties": {
+        "adc_gpio": { "type": "integer", "description": "GPIO with battery voltage divider" },
+        "voltage_divider": { "type": "number", "default": 2.0, "description": "Multiply ADC voltage by this to get battery voltage" },
+        "full_mv": { "type": "integer", "default": 4200 },
+        "empty_mv": { "type": "integer", "default": 3300 },
+        "sample_interval_ms": { "type": "integer", "default": 30000 }
+      },
+      "required": ["adc_gpio"]
+    },
+    "trackball": {
+      "type": "object",
+      "description": "GPIO-based trackball input device",
+      "additionalProperties": false,
+      "properties": {
+        "driver": {
+          "type": "string",
+          "enum": ["gpio_trackball", "none"],
+          "description": "Trackball driver type"
+        },
+        "pin_up": { "type": "integer" },
+        "pin_down": { "type": "integer" },
+        "pin_left": { "type": "integer" },
+        "pin_right": { "type": "integer" },
+        "pin_click": { "type": "integer" }
+      },
+      "required": ["driver"]
+    },
+    "sdkconfig_defaults": {
+      "type": "string",
+      "description": "Path to an additional sdkconfig.defaults file for this board"
+    }
+  }
+}

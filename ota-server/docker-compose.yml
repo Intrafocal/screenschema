@@ -1,0 +1,8 @@
+services:
+  ota-server:
+    build: .
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./firmware:/firmware
+    restart: unless-stopped

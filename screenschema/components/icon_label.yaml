@@ -1,0 +1,33 @@
+component:
+  name: icon_label
+  description: "Icon with a text label beside it"
+
+  props:
+    icon:
+      type: image_path
+      required: true
+    text:
+      type: string
+      required: true
+    color:
+      type: color
+      default: "#FFFFFF"
+    icon_size:
+      type: integer
+      default: 24
+
+  size: ["LV_SIZE_CONTENT", "LV_SIZE_CONTENT"]
+
+  template:
+    - type: image
+      id: "{{id}}_icon"
+      src: "{{icon}}"
+      align: left_mid
+      zoom: 256
+    - type: label
+      id: "{{id}}_text"
+      text: "{{text}}"
+      align: left_mid
+      offset: ["{{icon_size + 8}}", 0]
+      style:
+        color: "{{color}}"

@@ -1,0 +1,75 @@
+schema_version: "1.0"
+
+board: esp32p4-jc4880p443c
+
+shell:
+  theme: dark
+  orientation: portrait
+  status_bar: true
+  navigation: gesture
+
+apps:
+  - id: hello_app
+    name: "Hello"
+    layout: single_screen
+
+    widgets:
+      - type: label
+        id: greeting_label
+        text: "Hello from ScreenSchema!"
+        align: center
+        style:
+          font: roboto_28
+          color: "#FFFFFF"
+
+      - type: label
+        id: subtitle_label
+        text: "Tap the button below"
+        align: center
+        offset: [0, 50]
+        style:
+          color: "#888888"
+
+      - type: button
+        id: tap_btn
+        label: "Tap Me"
+        align: center
+        offset: [0, 120]
+        on_click: handler_tap
+
+    on_init: handler_hello_init
+
+  - id: counter_app
+    name: "Counter"
+    layout: single_screen
+
+    widgets:
+      - type: label
+        id: count_label
+        text: "0"
+        align: center
+        style:
+          font: roboto_48
+          color: "#3A86FF"
+
+      - type: label
+        id: count_title
+        text: "TAPS"
+        align: center
+        offset: [0, 60]
+        style:
+          color: "#888888"
+
+      - type: button
+        id: increment_btn
+        label: "+"
+        align: center
+        offset: [60, 130]
+        on_click: handler_increment
+
+      - type: button
+        id: reset_btn
+        label: "Reset"
+        align: center
+        offset: [-60, 130]
+        on_click: handler_reset

@@ -1,0 +1,5 @@
+layout:
+  name: scrollable
+  description: "Vertically scrollable container with free-positioned widgets."
+  config_schema: {}
+  implementation: builtin

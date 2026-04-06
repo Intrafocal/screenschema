@@ -1,0 +1,40 @@
+id: esp32c6-waveshare-lcd
+description: "Waveshare ESP32-C6 1.47\" 172x320 ST7789 LCD (no touch)"
+chip: esp32c6
+
+display:
+  width: 172
+  height: 320
+  driver: st7789
+  interface: spi
+  orientation: portrait
+  color_depth: 16
+  backlight_gpio: 7
+  spi_host: SPI2_HOST
+  pin_cs: 14
+  pin_dc: 15
+  pin_rst: 21
+  pin_sclk: 6
+  pin_mosi: 7
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+touch:
+  driver: null
+
+memory:
+  flash_mb: 8
+  psram_mb: 0
+  lvgl_buf_kb: 8
+
+brookesia:
+  stylesheet: ESP_BROOKESIA_PHONE_172_320_DARK_STYLESHEET
+
+wifi:
+  driver: native
+
+serial_bridge:
+  enabled: true
+  uart: UART_NUM_0
+  baud: 115200

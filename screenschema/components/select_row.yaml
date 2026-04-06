@@ -1,0 +1,39 @@
+component:
+  name: select_row
+  description: "Settings row with a label and a dropdown selector"
+
+  props:
+    label:
+      type: string
+      required: true
+    value_id:
+      type: string
+      required: true
+    options:
+      type: list
+      required: true
+    selected:
+      type: integer
+      default: 0
+    on_change:
+      type: handler
+      default: null
+
+  size: ["LV_PCT(100)", 48]
+
+  template:
+    - type: label
+      id: "{{id}}_label"
+      text: "{{label}}"
+      align: left_mid
+      offset: [12, 0]
+      style:
+        font: roboto_16
+        color: "#FFFFFF"
+    - type: dropdown
+      id: "{{value_id}}"
+      options: "{{options}}"
+      selected: "{{selected}}"
+      align: right_mid
+      offset: [-12, 0]
+      on_change: "{{on_change}}"

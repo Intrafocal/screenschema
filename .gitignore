@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+
+# ESP-IDF build artifacts
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+dependencies.lock
+
+# Generated firmware
+*.bin
+*.elf
+*.map
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Local secrets / env
+.env
+*.local.yaml
+
+# Generated outputs
+out/
+generated/

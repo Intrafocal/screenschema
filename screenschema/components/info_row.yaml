@@ -1,0 +1,34 @@
+component:
+  name: info_row
+  description: "Read-only settings row with a label on the left and a value on the right"
+
+  props:
+    label:
+      type: string
+      required: true
+    value_id:
+      type: string
+      required: true
+    value:
+      type: string
+      default: "--"
+
+  size: ["LV_PCT(100)", 48]
+
+  template:
+    - type: label
+      id: "{{id}}_label"
+      text: "{{label}}"
+      align: left_mid
+      offset: [12, 0]
+      style:
+        font: roboto_16
+        color: "#FFFFFF"
+    - type: label
+      id: "{{value_id}}"
+      text: "{{value}}"
+      align: right_mid
+      offset: [-12, 0]
+      style:
+        font: roboto_16
+        color: "#888888"

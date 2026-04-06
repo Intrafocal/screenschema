@@ -1,0 +1,27 @@
+component:
+  name: button_row
+  description: "Full-width action button row for settings screens"
+
+  props:
+    label:
+      type: string
+      required: true
+    on_click:
+      type: handler
+      default: null
+    color:
+      type: color
+      default: "#3A86FF"
+
+  size: ["LV_PCT(100)", 48]
+
+  template:
+    - type: button
+      id: "{{id}}_btn"
+      label: "{{label}}"
+      align: center
+      size: ["LV_PCT(90)", 40]
+      on_click: "{{on_click}}"
+      style:
+        bg_color: "{{color}}"
+        radius: 8

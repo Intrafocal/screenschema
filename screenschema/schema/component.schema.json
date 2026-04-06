@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://screenschema/schema/component.schema.json",
+  "title": "ScreenSchema Component Definition",
+  "description": "Validates a reusable component definition YAML file in components/",
+  "type": "object",
+  "required": ["component"],
+  "additionalProperties": false,
+  "properties": {
+    "component": {
+      "type": "object",
+      "required": ["name", "template"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Component type name (used as widget 'type' in screenschema.yaml)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what the component does"
+        },
+        "props": {
+          "type": "object",
+          "description": "Declared props (inputs) for this component",
+          "additionalProperties": {
+            "$ref": "#/definitions/prop_definition"
+          }
+        },
+        "size": {
+          "description": "Default [width, height] of the component root container",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "integer" }
+            ]
+          }
+        },
+        "style": {
+          "type": "object",
+          "description": "Default LVGL styles applied to the component root container",
+          "additionalProperties": true
+        },
+        "template": {
+          "type": "array",
+          "description": "Widget tree that makes up the component body",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/template_widget"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "prop_definition": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "boolean", "color", "image_path", "handler", "list"],
+          "description": "Prop value type"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this prop must be supplied by the caller"
+        },
+        "default": {
+          "description": "Default value when prop is not supplied"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "template_widget": {
+      "type": "object",
+      "required": ["type", "id"],
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Widget type (label, button, image, slider, toggle, dropdown, or component name)"
+        },
+        "id": {
+          "type": "string",
+          "description": "Widget id; may use '{{prop}}' template syntax"
+        },
+        "align": {
+          "type": "string",
+          "description": "LVGL alignment constant (e.g. center, left_mid, top_left)"
+        },
+        "offset": {
+          "type": "array",
+          "description": "[x, y] pixel offset from alignment anchor",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "string" }
+            ]
+          }
+        },
+        "size": {
+          "type": "array",
+          "description": "[width, height]; may use LV_PCT() or LV_SIZE_CONTENT",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "oneOf": [
+              { "type": "integer" },
+              { "type": "string" }
+            ]
+          }
+        },
+        "style": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "LVGL style properties for this widget"
+        }
+      }
+    }
+  }
+}

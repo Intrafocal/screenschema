@@ -1,0 +1,102 @@
+schema_version: "1.0"
+firmware_version: "1.0.0"
+
+board: esp32s3-es3c28p
+
+device:
+  id: "hub-kitchen"
+  location: "kitchen"
+  friendly_name: "Kitchen Hub"
+
+network:
+  endpoints:
+    gateway:
+      base_url: "http://myserver.local:8006/api/v1"
+      timeout_ms: 5000
+      retry: 2
+  heartbeat:
+    endpoint: gateway
+    path: /devices/heartbeat
+    interval_s: 30
+  websocket:
+    url: "ws://myserver.local:8006/ws/devices"
+    reconnect_s: 5
+
+server:
+  enabled: true
+  port: 80
+  mdns: true
+
+shell:
+  theme: dark
+  orientation: portrait
+  status_bar: true
+  navigation: gesture
+  system_app:
+    wifi: true
+    ota: true
+
+apps:
+  - id: hello_app
+    name: "Hello"
+    layout: single_screen
+
+    widgets:
+      - type: label
+        id: greeting_label
+        text: "Hello from ScreenSchema!"
+        align: center
+        style:
+          color: "#FFFFFF"
+
+      - type: label
+        id: subtitle_label
+        text: "Tap the button below"
+        align: center
+        offset: [0, 40]
+        style:
+          color: "#888888"
+
+      - type: button
+        id: tap_btn
+        label: "Tap Me"
+        align: center
+        offset: [0, 90]
+        on_click: handler_tap
+
+    on_init: handler_hello_init
+
+  - id: counter_app
+    name: "Counter"
+    layout: single_screen
+
+    widgets:
+      - type: label
+        id: count_label
+        text: "0"
+        align: center
+        style:
+          color: "#3A86FF"
+
+      - type: label
+        id: count_title
+        text: "TAPS"
+        align: center
+        offset: [0, 40]
+        style:
+          color: "#888888"
+
+      - type: button
+        id: increment_btn
+        label: "+"
+        align: center
+        offset: [50, 90]
+        on_click: handler_increment
+
+      - type: button
+        id: reset_btn
+        label: "Reset"
+        align: center
+        offset: [-50, 90]
+        on_click: handler_reset
+

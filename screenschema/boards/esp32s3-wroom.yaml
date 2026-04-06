@@ -1,0 +1,28 @@
+id: esp32s3-wroom
+description: "Espressif ESP32-S3-DevKitC-1 WROOM (no built-in display)"
+chip: esp32s3
+
+display:
+  # No built-in display — configure manually if adding external display
+  driver: null
+  width: 240
+  height: 320
+
+touch:
+  driver: null
+
+memory:
+  flash_mb: 16
+  psram_mb: 8
+  lvgl_buf_kb: 40
+
+brookesia:
+  stylesheet: ESP_BROOKESIA_PHONE_240_320_DARK_STYLESHEET
+
+wifi:
+  driver: native
+
+serial_bridge:
+  enabled: true
+  uart: UART_NUM_0
+  baud: 115200

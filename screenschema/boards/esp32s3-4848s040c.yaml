@@ -1,0 +1,48 @@
+id: esp32s3-4848s040c
+description: "Guition ESP32-S3 4.0\" round 480x480 capacitive touch (4848S040C_I)"
+chip: esp32s3
+
+display:
+  width: 480
+  height: 480
+  driver: gc9a01
+  interface: spi
+  orientation: portrait
+  color_depth: 16
+  backlight_gpio: 38
+  spi_host: SPI2_HOST
+  pin_cs: 39
+  pin_dc: 40
+  pin_rst: 41
+  pin_sclk: 47
+  pin_mosi: 48
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+touch:
+  driver: ft6236
+  interface: i2c
+  sda: 4
+  scl: 5
+  rst_gpio: -1
+  int_gpio: 6
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+memory:
+  flash_mb: 16
+  psram_mb: 8
+  lvgl_buf_kb: 80
+
+brookesia:
+  stylesheet: ESP_BROOKESIA_PHONE_480_480_DARK_STYLESHEET
+
+wifi:
+  driver: native
+
+serial_bridge:
+  enabled: true
+  uart: UART_NUM_0
+  baud: 115200

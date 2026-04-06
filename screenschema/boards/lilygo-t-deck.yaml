@@ -1,0 +1,90 @@
+id: lilygo-t-deck
+description: "LilyGO T-Deck ESP32-S3 2.8\" 320x240 BB Keyboard+Trackball (no LoRa)"
+chip: esp32s3
+
+early_init:
+  gpio_set_high: [10]    # Power gate — must be HIGH before any peripheral responds
+  gpio_set_low: [9]      # LoRa CS deassert (unpopulated but good practice)
+
+display:
+  width: 320
+  height: 240
+  driver: st7789
+  interface: spi
+  orientation: landscape
+  color_depth: 16
+  spi_host: SPI2_HOST
+  pin_cs: 12
+  pin_dc: 11
+  pin_rst: -1
+  pin_sclk: 40
+  pin_mosi: 41
+  backlight_gpio: 42
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+touch:
+  driver: gt911
+  interface: i2c
+  sda: 18
+  scl: 8
+  rst_gpio: -1
+  int_gpio: 16
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+keyboard:
+  driver: i2c_keypad
+  i2c_addr: 0x55
+  int_gpio: 46
+  backlight_control: true
+
+trackball:
+  driver: gpio_trackball
+  pin_up: 3
+  pin_down: 15
+  pin_left: 1
+  pin_right: 2
+  pin_click: 0
+
+audio:
+  driver: i2s
+  mic:
+    driver: i2s_std
+    sample_rate: 16000
+    bits: 16
+    pin_clk: 47
+    pin_data: 14
+    pin_ws: 21
+    i2s_port: 0
+  speaker:
+    driver: i2s_std
+    sample_rate: 16000
+    bits: 16
+    pin_bclk: 7
+    pin_lrclk: 5
+    pin_data: 6
+    i2s_port: 1
+
+battery:
+  adc_gpio: 4
+  voltage_divider: 2.0    # T-Deck uses a 2x divider on VBAT
+  full_mv: 4200
+  empty_mv: 3300
+  sample_interval_ms: 30000
+
+memory:
+  flash_mb: 16
+  psram_mb: 8
+  psram_mode: oct
+  lvgl_buf_kb: 40
+
+brookesia:
+  stylesheet: ESP_BROOKESIA_PHONE_320_480_DARK_STYLESHEET
+
+serial_bridge:
+  enabled: true
+  uart: UART_NUM_0
+  baud: 115200

@@ -1,0 +1,10 @@
+layout:
+  name: tabbed
+  description: "Tab bar (top or bottom) with independent widget lists per tab."
+  config_schema:
+    tab_position:
+      type: string
+      enum: [top, bottom]
+      default: top
+  implementation: builtin
+  notes: "Use 'tabs:' at app level instead of 'widgets:'"

@@ -1,0 +1,47 @@
+component:
+  name: slider_row
+  description: "Settings row with a label and a full-width slider"
+
+  props:
+    label:
+      type: string
+      required: true
+    value_id:
+      type: string
+      required: true
+    range_min:
+      type: integer
+      default: 0
+    range_max:
+      type: integer
+      default: 100
+    value:
+      type: integer
+      default: 50
+    on_change:
+      type: handler
+      default: null
+    on_release:
+      type: handler
+      default: null
+
+  size: ["LV_PCT(100)", 72]
+
+  template:
+    - type: label
+      id: "{{id}}_label"
+      text: "{{label}}"
+      align: top_left
+      offset: [12, 8]
+      style:
+        font: roboto_14
+        color: "#AAAAAA"
+    - type: slider
+      id: "{{value_id}}"
+      range: ["{{range_min}}", "{{range_max}}"]
+      value: "{{value}}"
+      align: bottom_mid
+      offset: [0, -12]
+      size: ["LV_PCT(90)", 6]
+      on_change: "{{on_change}}"
+      on_release: "{{on_release}}"

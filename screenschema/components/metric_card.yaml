@@ -1,0 +1,59 @@
+component:
+  name: metric_card
+  description: "Single-value metric tile with large value display, unit, and descriptive label"
+
+  props:
+    label:
+      type: string
+      required: true
+      description: "Descriptive label shown at the bottom (e.g. 'Temperature')"
+    value_id:
+      type: string
+      required: true
+      description: "SSContext id for the numeric value label"
+    unit:
+      type: string
+      default: ""
+      description: "Unit string shown next to value (e.g. '°C', '%', 'hPa')"
+    icon:
+      type: image_path
+      default: null
+    color:
+      type: color
+      default: "#FFFFFF"
+    bg_color:
+      type: color
+      default: "#1E1E2E"
+
+  size: ["LV_PCT(100)", "LV_PCT(100)"]
+
+  style:
+    bg_color: "{{bg_color}}"
+    radius: 12
+    padding: [12, 12]
+
+  template:
+    - type: label
+      id: "{{value_id}}"
+      text: "--"
+      align: center
+      style:
+        font: roboto_48_bold
+        color: "{{color}}"
+    - type: label
+      id: "{{id}}_unit"
+      text: "{{unit}}"
+      align: center
+      offset: [0, 36]
+      style:
+        font: roboto_16
+        color: "{{color}}"
+        opacity: 180
+    - type: label
+      id: "{{id}}_label"
+      text: "{{label}}"
+      align: bottom_mid
+      offset: [0, -8]
+      style:
+        font: roboto_14
+        color: "#888888"

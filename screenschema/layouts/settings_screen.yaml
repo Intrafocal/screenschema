@@ -1,0 +1,6 @@
+layout:
+  name: settings_screen
+  description: "Scrollable page of sections containing settings rows."
+  config_schema: {}
+  implementation: builtin
+  notes: "Use 'sections:' at app level instead of 'widgets:'"

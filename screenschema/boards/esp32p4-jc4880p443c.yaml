@@ -1,0 +1,68 @@
+id: esp32p4-jc4880p443c
+description: "Jingcai 4.3\" ESP32-P4 480x800 capacitive touch (JC4880P443C_I_W)"
+chip: esp32p4
+
+display:
+  width: 480
+  height: 800
+  driver: st7701s_dsi
+  interface: mipi_dsi
+  orientation: portrait
+  color_depth: 24
+  backlight_gpio: -1
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+touch:
+  driver: gt911
+  interface: i2c
+  sda: 7
+  scl: 8
+  rst_gpio: -1
+  int_gpio: -1
+  swap_xy: false
+  mirror_x: false
+  mirror_y: false
+
+audio:
+  driver: es8311
+  codec_i2c_addr: 0x18
+  i2s_port: 0
+  sample_rate: 16000
+  bits: 16
+  pin_mck: 13
+  pin_bck: 12
+  pin_ws: 10
+  pin_dout: 9                 # Speaker data (to codec DAC)
+  pin_din: 48                 # Mic data (from codec ADC)
+  amp_enable_gpio: 11         # PA_IO
+  amp_active_low: false       # Verify polarity on this board
+
+memory:
+  flash_mb: 16
+  psram_mb: 32
+  lvgl_buf_kb: 100
+
+brookesia:
+  stylesheet: ESP_BROOKESIA_PHONE_480_800_DARK_STYLESHEET
+
+wifi:
+  driver: hosted
+  transport: spi
+  spi_host: SPI2_HOST
+  # Pins match the ESP32-P4-Function-EV-Board C6 coprocessor wiring.
+  # Verify against your specific board schematic before use.
+  pin_mosi: 48
+  pin_miso: 47
+  pin_sclk: 45
+  pin_cs: 46
+  pin_handshake: 2
+  pin_reset: -1
+
+serial_bridge:
+  enabled: true
+  uart: UART_NUM_0
+  baud: 115200
+
+sdkconfig_defaults: sdkconfig.defaults.esp32p4
