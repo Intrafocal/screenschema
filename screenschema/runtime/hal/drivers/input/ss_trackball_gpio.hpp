@@ -1,6 +1,7 @@
 #pragma once
 #include "lvgl.h"
 #include "esp_err.h"
+#include "driver/gpio.h"
 #include <cstdint>
 #include <atomic>
 

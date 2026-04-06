@@ -123,8 +123,8 @@ void SSBattery::onChange(std::function<void(SSBatteryReading)> cb) {
     on_change_ = std::move(cb);
 }
 
-void SSBattery::timer_cb(void* arg) {
-    auto* self = static_cast<SSBattery*>(arg);
+void SSBattery::timer_cb(lv_timer_t* t) {
+    auto* self = static_cast<SSBattery*>(t->user_data);
     SSBatteryReading r = self->read();
     if (self->on_change_) self->on_change_(r);
 }

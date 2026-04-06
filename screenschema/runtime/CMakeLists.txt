@@ -21,12 +21,17 @@ set(srcs
     "core/ss_audio_queue.cpp"
     "core/ss_background.cpp"
     "core/ss_wifi_transport_hosted.cpp"
+    "core/ss_input.cpp"
+    "core/ss_battery.cpp"
     "hal/ss_hal.cpp"
     "hal/drivers/display/ili9341.cpp"
+    "hal/drivers/display/st7789.cpp"
     "hal/drivers/touch/gt911.cpp"
     "hal/drivers/touch/ft6236.cpp"
     "hal/drivers/audio/ss_audio_i2s.cpp"
     "hal/drivers/audio/ss_audio_es8311.cpp"
+    "hal/drivers/input/ss_keyboard_i2c.cpp"
+    "hal/drivers/input/ss_trackball_gpio.cpp"
 )
 # DSI display driver only available on ESP32-P4
 if(${IDF_TARGET} STREQUAL "esp32p4")
@@ -40,6 +45,7 @@ set(include_dirs
     "hal/drivers/display"
     "hal/drivers/touch"
     "hal/drivers/audio"
+    "hal/drivers/input"
 )
 
 idf_component_register(
@@ -52,6 +58,7 @@ idf_component_register(
         esp_lcd_touch_ft5x06
         esp_lcd_ili9341
         driver
+        esp_adc
         esp_driver_i2s
         esp_driver_ledc
         lvgl

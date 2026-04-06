@@ -1,5 +1,6 @@
 #pragma once
 #include "esp_err.h"
+#include "lvgl.h"
 #include <cstdint>
 #include <functional>
 
@@ -29,7 +30,7 @@ public:
 
 private:
     SSBattery() = default;
-    static void timer_cb(void* arg);
+    static void timer_cb(lv_timer_t* t);
 
     SSBatteryConfig cfg_ = {};
     bool initialized_ = false;
