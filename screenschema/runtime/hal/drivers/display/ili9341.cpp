@@ -70,8 +70,8 @@ esp_err_t SSDisplayILI9341::init() {
     esp_lcd_panel_invert_color(panel_, true);
     esp_lcd_panel_disp_on_off(panel_, true);
 
-    // Rotation + optional per-axis mirror (XOR with rotation-derived mirrors)
-    bool swap_xy  = (cfg_.rotation == 1 || cfg_.rotation == 3);
+    // Rotation + optional per-axis swap/mirror (XOR with rotation-derived defaults)
+    bool swap_xy  = (cfg_.rotation == 1 || cfg_.rotation == 3) ^ cfg_.swap_xy;
     bool mirror_x = (cfg_.rotation == 2 || cfg_.rotation == 3) ^ cfg_.mirror_x;
     bool mirror_y = (cfg_.rotation == 1 || cfg_.rotation == 2) ^ cfg_.mirror_y;
     esp_lcd_panel_swap_xy(panel_, swap_xy);

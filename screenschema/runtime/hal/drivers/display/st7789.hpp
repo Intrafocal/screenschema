@@ -10,8 +10,9 @@ struct SSDisplayST7789Config {
     int pin_sclk, pin_mosi, pin_miso;
     int width, height;
     uint8_t rotation;   // 0=landscape, 1=portrait (90°), 2=landscape inverted, 3=portrait inverted
-    bool mirror_x;      // flip horizontally after rotation
-    bool mirror_y;      // flip vertically after rotation
+    bool swap_xy;       // XOR override on top of rotation-derived swap_xy
+    bool mirror_x;      // XOR override on top of rotation-derived mirror_x
+    bool mirror_y;      // XOR override on top of rotation-derived mirror_y
 };
 
 class SSDisplayST7789 : public ISSDisplay {

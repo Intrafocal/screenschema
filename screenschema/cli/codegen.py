@@ -271,6 +271,7 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir
         "display_orientation": display.get("orientation", "portrait"),
         "display_interface": display.get("interface", "spi"),
         "display_rotation": display.get("rotation", 0),
+        "display_swap_xy": "true" if display.get("swap_xy", False) else "false",
         "display_mirror_x": "true" if display.get("mirror_x", False) else "false",
         "display_mirror_y": "true" if display.get("mirror_y", False) else "false",
         # Display SPI pins (for SPI drivers; -1 if unused)

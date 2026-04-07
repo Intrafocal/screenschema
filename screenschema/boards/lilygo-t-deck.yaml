@@ -20,6 +20,10 @@ display:
   pin_sclk: 40
   pin_mosi: 41
   backlight_gpio: 42
+  # Native panel is 240x320 portrait, mounted in landscape — rotation 1 sets
+  # MADCTL.MV (swap_xy) and MADCTL.MY (mirror_y) to match LILYGO TFT_eSPI
+  # Setup210 (rotation=1).
+  rotation: 1
   swap_xy: false
   mirror_x: false
   mirror_y: false

@@ -88,8 +88,9 @@ esp_err_t SSDisplayST7789::init() {
 
     esp_lcd_panel_disp_on_off(panel_, true);
 
-    // Rotation + optional per-axis mirror
-    bool swap_xy  = (cfg_.rotation == 1 || cfg_.rotation == 3);
+    // Rotation + optional per-axis swap/mirror (all three are XOR overrides
+    // on top of the rotation-derived defaults).
+    bool swap_xy  = (cfg_.rotation == 1 || cfg_.rotation == 3) ^ cfg_.swap_xy;
     bool mirror_x = (cfg_.rotation == 2 || cfg_.rotation == 3) ^ cfg_.mirror_x;
     bool mirror_y = (cfg_.rotation == 1 || cfg_.rotation == 2) ^ cfg_.mirror_y;
     esp_lcd_panel_swap_xy(panel_, swap_xy);
@@ -122,6 +123,7 @@ esp_err_t SSDisplayST7789::init() {
     disp_drv_.draw_buf  = &draw_buf;
     disp_drv_.user_data = this;
 
+    disp_drv_.full_refresh = 1;  // always redraw entire screen, avoids stale display memory
     disp_ = lv_disp_drv_register(&disp_drv_);
     ESP_LOGI(TAG, "ST7789 initialized (%ux%u, rotation=%u)", w_, h_, cfg_.rotation);
     return ESP_OK;
