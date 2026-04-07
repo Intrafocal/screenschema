@@ -385,6 +385,7 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir
         "trackball_pin_left": trackball.get("pin_left", -1),
         "trackball_pin_right": trackball.get("pin_right", -1),
         "trackball_pin_click": trackball.get("pin_click", -1),
+        "trackball_step_px":  trackball.get("step_px", 10),
         # Battery (D9)
         "has_battery":            bool(battery),
         "battery_adc_gpio":       battery.get("adc_gpio", -1),

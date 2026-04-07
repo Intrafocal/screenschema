@@ -5,6 +5,13 @@
 
 static const char* TAG = "SS_FACTORY";
 
+// Hardware keyboard presence flag (B15) — set from main.cpp via codegen.
+// When true, text_input widgets skip the LVGL on-screen keyboard popup.
+static bool s_has_hardware_keyboard = false;
+
+void SSWidgetFactory::setHasHardwareKeyboard(bool present) { s_has_hardware_keyboard = present; }
+bool SSWidgetFactory::hasHardwareKeyboard()                { return s_has_hardware_keyboard; }
+
 // ---------------------------------------------------------------------------
 // Helper: map SSAlign to lv_align_t
 // ---------------------------------------------------------------------------
@@ -223,36 +230,42 @@ void SSWidgetFactory::registerBuiltins() {
 
         apply_base_config(ta, cfg);
 
-        // Create keyboard on the app screen — shown/hidden on focus/defocus.
-        // Move to foreground so it renders on top of the scrollable container.
-        lv_obj_t* screen = lv_obj_get_screen(parent);
-        lv_obj_t* kb = lv_keyboard_create(screen);
-        lv_obj_set_size(kb, LV_PCT(100), LV_PCT(45));
-        lv_obj_align(kb, LV_ALIGN_BOTTOM_MID, 0, 0);
-        lv_keyboard_set_textarea(kb, ta);
-        lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_move_foreground(kb);
-
-        lv_obj_add_event_cb(ta, [](lv_event_t* e) {
-            lv_obj_t* kb = static_cast<lv_obj_t*>(lv_event_get_user_data(e));
-            lv_obj_t* ta = lv_event_get_target(e);
+        // Skip the on-screen keyboard popup when a hardware keyboard is
+        // present (B15) — the user can type directly via the I2C keyboard's
+        // keypad indev, and the LVGL keyboard widget would just obscure the
+        // textarea on a 320x240 display.
+        if (!s_has_hardware_keyboard) {
+            // Create keyboard on the app screen — shown/hidden on focus/defocus.
+            // Move to foreground so it renders on top of the scrollable container.
+            lv_obj_t* screen = lv_obj_get_screen(parent);
+            lv_obj_t* kb = lv_keyboard_create(screen);
+            lv_obj_set_size(kb, LV_PCT(100), LV_PCT(45));
+            lv_obj_align(kb, LV_ALIGN_BOTTOM_MID, 0, 0);
             lv_keyboard_set_textarea(kb, ta);
-            lv_obj_clear_flag(kb, LV_OBJ_FLAG_HIDDEN);
-            // Expand container bottom padding to match keyboard height so
-            // scroll_to_view knows the usable area and places textarea above keyboard.
-            lv_obj_t* container = lv_obj_get_parent(ta);
-            lv_coord_t kb_h = lv_obj_get_height(kb);
-            lv_obj_set_style_pad_bottom(container, kb_h + 4, 0);
-            lv_obj_scroll_to_view(ta, LV_ANIM_ON);
-        }, LV_EVENT_FOCUSED, kb);
-
-        lv_obj_add_event_cb(ta, [](lv_event_t* e) {
-            lv_obj_t* kb = static_cast<lv_obj_t*>(lv_event_get_user_data(e));
             lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
-            // Restore normal bottom padding
-            lv_obj_t* container = lv_obj_get_parent(lv_event_get_target(e));
-            lv_obj_set_style_pad_bottom(container, 10, 0);
-        }, LV_EVENT_DEFOCUSED, kb);
+            lv_obj_move_foreground(kb);
+
+            lv_obj_add_event_cb(ta, [](lv_event_t* e) {
+                lv_obj_t* kb = static_cast<lv_obj_t*>(lv_event_get_user_data(e));
+                lv_obj_t* ta = lv_event_get_target(e);
+                lv_keyboard_set_textarea(kb, ta);
+                lv_obj_clear_flag(kb, LV_OBJ_FLAG_HIDDEN);
+                // Expand container bottom padding to match keyboard height so
+                // scroll_to_view knows the usable area and places textarea above keyboard.
+                lv_obj_t* container = lv_obj_get_parent(ta);
+                lv_coord_t kb_h = lv_obj_get_height(kb);
+                lv_obj_set_style_pad_bottom(container, kb_h + 4, 0);
+                lv_obj_scroll_to_view(ta, LV_ANIM_ON);
+            }, LV_EVENT_FOCUSED, kb);
+
+            lv_obj_add_event_cb(ta, [](lv_event_t* e) {
+                lv_obj_t* kb = static_cast<lv_obj_t*>(lv_event_get_user_data(e));
+                lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+                // Restore normal bottom padding
+                lv_obj_t* container = lv_obj_get_parent(lv_event_get_target(e));
+                lv_obj_set_style_pad_bottom(container, 10, 0);
+            }, LV_EVENT_DEFOCUSED, kb);
+        }
 
         // on_submit: fires when keyboard "Ok" is pressed
         if (!cfg.on_submit.empty()) {

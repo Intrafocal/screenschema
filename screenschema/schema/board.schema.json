@@ -393,7 +393,7 @@
     },
     "trackball": {
       "type": "object",
-      "description": "GPIO-based trackball input device",
+      "description": "GPIO-based trackball input device (LVGL pointer)",
       "additionalProperties": false,
       "properties": {
         "driver": {
@@ -405,7 +405,13 @@
         "pin_down": { "type": "integer" },
         "pin_left": { "type": "integer" },
         "pin_right": { "type": "integer" },
-        "pin_click": { "type": "integer" }
+        "pin_click": { "type": "integer" },
+        "step_px": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10,
+          "description": "Pixels the virtual cursor advances per detected edge transition. Smaller = finer control but slower full-screen movement; larger = faster navigation but coarser positioning. 8-12 is reasonable for a 320px-wide display."
+        }
       },
       "required": ["driver"]
     },

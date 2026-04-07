@@ -311,7 +311,7 @@ extern "C" void app_main(void) {
         .pin_click = {{ trackball_pin_click }},
         .width     = {{ display_width }},
         .height    = {{ display_height }},
-        .step_px   = 10,
+        .step_px   = {{ trackball_step_px }},
     };
     SSTrackballGPIO trackball(tb_cfg);
     if (trackball.init() != ESP_OK) {
@@ -334,6 +334,9 @@ extern "C" void app_main(void) {
 {% endif %}
 
     SSWidgetFactory::instance();  // triggers built-in type registration
+{% if has_keyboard %}
+    SSWidgetFactory::setHasHardwareKeyboard(true);  // skip on-screen keyboard popups (B15)
+{% endif %}
     register_custom_widgets();
 
     // WiFi transport init and status bar sync

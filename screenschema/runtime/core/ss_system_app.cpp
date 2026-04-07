@@ -1,4 +1,5 @@
 #include "ss_system_app.hpp"
+#include "ss_widget_factory.hpp"
 #include "esp_log.h"
 #include <vector>
 
@@ -55,14 +56,19 @@ void SSSystemApp::buildUI(lv_obj_t* container) {
 
     lv_obj_t* screen = lv_obj_get_parent(container);
 
-    // Shared keyboard — child of screen so it overlays the container
-    kb_ = lv_keyboard_create(screen);
-    lv_obj_set_size(kb_, lv_pct(100), lv_pct(45));
-    lv_obj_align(kb_, LV_ALIGN_BOTTOM_MID, 0, 0);
-    lv_obj_add_flag(kb_, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_move_foreground(kb_);
-    lv_obj_add_event_cb(kb_, on_kb_done, LV_EVENT_READY,  this);
-    lv_obj_add_event_cb(kb_, on_kb_done, LV_EVENT_CANCEL, this);
+    // Shared on-screen keyboard — only created when no hardware keyboard is
+    // present (B15).  When kb_ is null, on_ta_focus / on_ta_defocus / on_kb_done
+    // become no-ops and the user types directly via the I2C keyboard's keypad
+    // indev.
+    if (!SSWidgetFactory::hasHardwareKeyboard()) {
+        kb_ = lv_keyboard_create(screen);
+        lv_obj_set_size(kb_, lv_pct(100), lv_pct(45));
+        lv_obj_align(kb_, LV_ALIGN_BOTTOM_MID, 0, 0);
+        lv_obj_add_flag(kb_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(kb_);
+        lv_obj_add_event_cb(kb_, on_kb_done, LV_EVENT_READY,  this);
+        lv_obj_add_event_cb(kb_, on_kb_done, LV_EVENT_CANCEL, this);
+    }
 
     lv_coord_t y = 10;
 
@@ -81,11 +87,33 @@ void SSSystemApp::buildUI(lv_obj_t* container) {
         y += 40;
 
         wifi_ssid_dd_ = lv_dropdown_create(container);
-        lv_dropdown_set_options(wifi_ssid_dd_, "Scan for networks...");
+        lv_dropdown_set_options(wifi_ssid_dd_, "Scanning...");
         lv_obj_set_size(wifi_ssid_dd_, 200, 40);
         lv_obj_align(wifi_ssid_dd_, LV_ALIGN_TOP_MID, 0, y);
         lv_obj_add_event_cb(wifi_ssid_dd_, on_ssid_change, LV_EVENT_VALUE_CHANGED, this);
         y += 55;
+
+        // Auto-trigger a scan as soon as the WiFi screen opens (B14) so the
+        // dropdown populates without the user having to press the Scan button.
+        SSWifiManager::instance().scan([this](std::vector<SSWifiManager::AP> aps) {
+            if (!open_ || !wifi_ssid_dd_) return;
+            if (aps.empty()) {
+                lv_dropdown_set_options(wifi_ssid_dd_, "No networks found");
+                if (wifi_status_) lv_label_set_text(wifi_status_, "No networks found");
+                return;
+            }
+            std::string opts;
+            for (size_t i = 0; i < aps.size(); ++i) {
+                if (i) opts += "\n";
+                opts += aps[i].ssid + (aps[i].secured ? " *" : "");
+            }
+            lv_dropdown_set_options(wifi_ssid_dd_, opts.c_str());
+            selected_ssid_ = aps[0].ssid;
+            if (wifi_status_) {
+                lv_label_set_text(wifi_status_,
+                    (std::to_string(aps.size()) + " network(s) found").c_str());
+            }
+        });
 
         wifi_password_ = lv_textarea_create(container);
         lv_textarea_set_placeholder_text(wifi_password_, "Password");
