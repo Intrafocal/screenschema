@@ -20,10 +20,13 @@ display:
   pin_sclk: 40
   pin_mosi: 41
   backlight_gpio: 42
-  # Native panel is 240x320 portrait, mounted in landscape — rotation 1 sets
-  # MADCTL.MV (swap_xy) and MADCTL.MY (mirror_y) to match LILYGO TFT_eSPI
-  # Setup210 (rotation=1).
-  rotation: 1
+  # Native panel is 240x320 portrait, mounted in landscape with the keyboard
+  # at the bottom.  rotation: 3 sets swap_xy + mirror_x, which is the
+  # right-side-up landscape orientation when held with the keyboard down.
+  # (Don't be misled by LILYGO TFT_eSPI's setRotation(1) — TFT_eSPI's rotation
+  # reference frame doesn't match esp_lcd_panel_st7789's, so the empirical
+  # value from visual testing is rotation=3.)
+  rotation: 3
   swap_xy: false
   mirror_x: false
   mirror_y: false

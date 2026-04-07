@@ -36,6 +36,14 @@ void SSKeyboardI2C::read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
 
     uint8_t raw = self->readKey();
 
+    // One-shot debug log on first detected key — confirms I2C reads work and
+    // the keyboard is wired/responsive.  Helps diagnose B12-style "input looks
+    // dead" issues without spamming on normal use.
+    if (!self->first_event_logged_ && raw != 0) {
+        ESP_LOGI(TAG, "First keyboard event: 0x%02X", raw);
+        self->first_event_logged_ = true;
+    }
+
     if (raw != 0) {
         // Let SSInput middleware intercept first (D5)
         if (SSInput::instance().dispatch(raw, SSKeySource::Keyboard)) {

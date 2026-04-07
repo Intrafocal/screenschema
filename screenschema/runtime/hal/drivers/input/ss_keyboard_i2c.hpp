@@ -26,6 +26,7 @@ private:
     lv_indev_t* indev_ = nullptr;
     uint8_t last_key_ = 0;
     bool key_pressed_ = false;
+    bool first_event_logged_ = false; // one-shot debug confirmation that I2C reads work
 
     static void read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data);
     uint8_t readKey();

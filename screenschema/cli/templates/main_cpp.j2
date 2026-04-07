@@ -394,6 +394,20 @@ extern "C" void app_main(void) {
         return;
     }
 
+{% if has_keyboard or has_trackball %}
+    // brookesia's phone.begin() may have replaced the default group with one
+    // of its own internal groups.  Re-set our input group as the default so
+    // widgets created by user apps (after this point) auto-add to it and
+    // become reachable from the keyboard / trackball.
+    //
+    // KNOWN LIMITATION (B12): brookesia's launcher icons and built-in screens
+    // are added to brookesia's internal groups, NOT this default group, so
+    // the trackball can't navigate the launcher itself.  Handler code that
+    // wants the keyboard / trackball to drive a custom widget tree should
+    // explicitly call lv_indev_set_group() with the relevant group.
+    lv_group_set_default(input_group);
+{% endif %}
+
     SSShell::instance().init(&phone);
 
     // Keep the brookesia status bar WiFi icon in sync with connection state.

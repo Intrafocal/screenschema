@@ -27,6 +27,7 @@ private:
     std::atomic<int8_t> ticks_right_{0};
     std::atomic<bool>   click_pressed_{false};
     bool click_was_pressed_ = false;  // edge detection for release
+    bool first_event_logged_ = false; // one-shot debug confirmation that ISRs fire
 
     static void IRAM_ATTR isr_up(void* arg);
     static void IRAM_ATTR isr_down(void* arg);

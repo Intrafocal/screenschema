@@ -47,6 +47,15 @@ void SSTrackballGPIO::read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
     int8_t right = self->ticks_right_.exchange(0, std::memory_order_relaxed);
     bool click   = self->click_pressed_.exchange(false, std::memory_order_relaxed);
 
+    // One-shot debug log on first detected event — confirms ISRs are firing
+    // and the read_cb is being polled.  Helps diagnose B12-style "trackball
+    // looks dead" issues without spamming the log on normal use.
+    if (!self->first_event_logged_ && (up || down || left || right || click)) {
+        ESP_LOGI(TAG, "First trackball event: up=%d down=%d left=%d right=%d click=%d",
+                 up, down, left, right, click);
+        self->first_event_logged_ = true;
+    }
+
     // Handle click — press on ISR edge, release on next poll with no click
     if (click) {
         // Let SSInput middleware intercept (D5)
