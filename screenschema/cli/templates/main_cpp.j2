@@ -278,8 +278,8 @@ extern "C" void app_main(void) {
     SSAudioQueue::instance().start();  // R2.4 — playback queue on core 1
 {% endif %}
 
-{% if has_keyboard or has_trackball %}
-    // LVGL input group — required for keypad/encoder input devices to drive widget focus
+{% if has_keyboard %}
+    // LVGL input group — required for keypad input devices to drive widget focus
     lv_group_t* input_group = lv_group_create();
     lv_group_set_default(input_group);
 {% endif %}
@@ -300,18 +300,21 @@ extern "C" void app_main(void) {
     }
 {% endif %}
 {% if has_trackball %}
-    // GPIO Trackball (D3)
+    // GPIO Trackball (D3) — registered as a POINTER device, same as touch.
+    // No group binding needed; brookesia and any LVGL touch UI handle pointer
+    // events identically to GT911 touch.
     SSTrackballGPIOConfig tb_cfg = {
         .pin_up    = {{ trackball_pin_up }},
         .pin_down  = {{ trackball_pin_down }},
         .pin_left  = {{ trackball_pin_left }},
         .pin_right = {{ trackball_pin_right }},
         .pin_click = {{ trackball_pin_click }},
+        .width     = {{ display_width }},
+        .height    = {{ display_height }},
+        .step_px   = 10,
     };
     SSTrackballGPIO trackball(tb_cfg);
-    if (trackball.init() == ESP_OK) {
-        lv_indev_set_group(trackball.lv_indev(), input_group);
-    } else {
+    if (trackball.init() != ESP_OK) {
         ESP_LOGE(TAG, "Trackball init failed — trackball input disabled");
     }
 {% endif %}
@@ -394,17 +397,11 @@ extern "C" void app_main(void) {
         return;
     }
 
-{% if has_keyboard or has_trackball %}
+{% if has_keyboard %}
     // brookesia's phone.begin() may have replaced the default group with one
     // of its own internal groups.  Re-set our input group as the default so
     // widgets created by user apps (after this point) auto-add to it and
-    // become reachable from the keyboard / trackball.
-    //
-    // KNOWN LIMITATION (B12): brookesia's launcher icons and built-in screens
-    // are added to brookesia's internal groups, NOT this default group, so
-    // the trackball can't navigate the launcher itself.  Handler code that
-    // wants the keyboard / trackball to drive a custom widget tree should
-    // explicitly call lv_indev_set_group() with the relevant group.
+    // become reachable from the keyboard.
     lv_group_set_default(input_group);
 {% endif %}
 
