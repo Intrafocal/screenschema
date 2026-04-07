@@ -82,7 +82,7 @@ memory:
   lvgl_buf_kb: 40
 
 brookesia:
-  stylesheet: ESP_BROOKESIA_PHONE_320_480_DARK_STYLESHEET
+  stylesheet: ESP_BROOKESIA_PHONE_320_240_DARK_STYLESHEET
 
 serial_bridge:
   enabled: true
