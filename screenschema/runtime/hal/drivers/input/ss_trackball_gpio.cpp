@@ -107,6 +107,21 @@ esp_err_t SSTrackballGPIO::init() {
         return ESP_FAIL;
     }
 
+    // Create a visible cursor on the top layer so it floats above all screens
+    // (including any brookesia launcher / app screens).  LVGL repositions the
+    // cursor object automatically on every pointer event from this indev.
+    cursor_ = lv_obj_create(lv_layer_top());
+    lv_obj_remove_style_all(cursor_);
+    lv_obj_set_size(cursor_, 14, 14);
+    lv_obj_set_style_radius(cursor_, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(cursor_, lv_color_white(), 0);
+    lv_obj_set_style_bg_opa(cursor_, LV_OPA_70, 0);
+    lv_obj_set_style_border_color(cursor_, lv_color_black(), 0);
+    lv_obj_set_style_border_width(cursor_, 2, 0);
+    lv_obj_set_style_border_opa(cursor_, LV_OPA_COVER, 0);
+    lv_obj_clear_flag(cursor_, LV_OBJ_FLAG_CLICKABLE);  // don't intercept its own clicks
+    lv_indev_set_cursor(indev_, cursor_);
+
     ESP_LOGI(TAG, "Trackball initialized as pointer (UP=%d DOWN=%d LEFT=%d RIGHT=%d CLICK=%d, %dx%d step=%dpx)",
              cfg_.pin_up, cfg_.pin_down, cfg_.pin_left, cfg_.pin_right, cfg_.pin_click,
              cfg_.width, cfg_.height, cfg_.step_px > 0 ? cfg_.step_px : 10);

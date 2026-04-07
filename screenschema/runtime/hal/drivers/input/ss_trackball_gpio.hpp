@@ -30,6 +30,7 @@ private:
     SSTrackballGPIOConfig cfg_;
     lv_indev_drv_t indev_drv_ = {};
     lv_indev_t* indev_ = nullptr;
+    lv_obj_t* cursor_ = nullptr;  // Visible LVGL cursor on the top layer
 
     // Accumulated virtual cursor position (clamped to display bounds)
     int16_t cursor_x_ = 0;
