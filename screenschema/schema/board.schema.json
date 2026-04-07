@@ -319,6 +319,22 @@
         }
       }
     },
+    "system": {
+      "type": "object",
+      "description": "FreeRTOS / ESP-IDF system tuning",
+      "additionalProperties": false,
+      "properties": {
+        "main_task_stack_size": {
+          "type": "integer",
+          "minimum": 4096,
+          "description": "Stack size in bytes for the FreeRTOS main task (CONFIG_ESP_MAIN_TASK_STACK_SIZE). ESP-IDF default of 3840 is too small for most ScreenSchema apps — recommend 8192 minimum, 16384 with comfortable headroom."
+        },
+        "freertos_unicore": {
+          "type": "boolean",
+          "description": "Run FreeRTOS in single-core mode (CONFIG_FREERTOS_UNICORE)"
+        }
+      }
+    },
     "early_init": {
       "type": "object",
       "description": "Board-specific early initialization before HAL init (e.g., power gates)",

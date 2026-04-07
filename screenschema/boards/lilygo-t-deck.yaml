@@ -81,6 +81,13 @@ memory:
   psram_mode: oct
   lvgl_buf_kb: 40
 
+system:
+  # ESP-IDF default of 3840 is too small for the brookesia phone shell +
+  # app installation + double init() lifecycle.  16 KB is comfortable
+  # headroom for application code that constructs non-trivial state in
+  # on_init handlers.  T-Deck has 8 MB PSRAM so the extra cost is trivial.
+  main_task_stack_size: 16384
+
 brookesia:
   stylesheet: ESP_BROOKESIA_PHONE_320_240_DARK_STYLESHEET
 
