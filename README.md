@@ -67,9 +67,11 @@ screenschema build screenschema.yaml
 # → generates project at build/generated/
 ```
 
-**3. Implement your handlers** (`build/generated/main/handlers.cpp`):
+**3. Implement your handlers** (`build/generated/main/handlers_<app_id>.cpp`):
 
-ScreenSchema generates stubs for every handler declared in the YAML. Fill them in:
+ScreenSchema generates one stub file per app (`handlers_hello_app.cpp` for the
+example above) with stubs for every handler that app declares in the YAML.
+These files are never overwritten — fill them in:
 
 ```cpp
 #include "handlers.hpp"
@@ -82,6 +84,11 @@ void handler_tap(const SSEvent& e) {
     SSContext::set("greeting_label", "You tapped it!");
 }
 ```
+
+> **Note:** projects generated before per-app stub files keep their single
+> `main/handlers.cpp` — if that file exists in the output directory,
+> screenschema stays in the legacy single-file layout (appending stubs for new
+> handlers there) instead of emitting `handlers_<app_id>.cpp` files.
 
 **4. Build and flash:**
 

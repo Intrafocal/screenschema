@@ -62,8 +62,11 @@ void SSWebSocket::init(const std::string& url, uint32_t reconnect_ms) {
 
     url_ = url;
 
-    pending_mutex_ = xSemaphoreCreateMutex();
-    pump_timer_    = lv_timer_create(pump_timer_cb, 20, this);
+    // Idempotent across stop()+init() reconnect cycles — creating a fresh
+    // mutex/timer each time would leak the previous pair (the orphaned
+    // lv_timer keeps firing forever).
+    if (!pending_mutex_) pending_mutex_ = xSemaphoreCreateMutex();
+    if (!pump_timer_)    pump_timer_    = lv_timer_create(pump_timer_cb, 20, this);
 
     esp_websocket_client_config_t ws_cfg = {};
     ws_cfg.uri                  = url_.c_str();
@@ -88,7 +91,21 @@ void SSWebSocket::stop() {
     esp_websocket_client_destroy(client_);
     client_    = nullptr;
     connected_ = false;
+    // Drop dispatches queued by the (now dead) connection — otherwise a stale
+    // open/message lambda fires after a stop()+init() reconnect and reports a
+    // spurious connect edge for the new, not-yet-connected socket.
+    drain_pending();
     ESP_LOGI(TAG, "Stopped");
+}
+
+void SSWebSocket::clearCallbacks() {
+    message_callbacks_.clear();
+    binary_callbacks_.clear();
+    open_callbacks_.clear();
+    // Also drop queued dispatches — they capture `this` plus the (about to be
+    // destroyed) owner's closures via the vectors we just cleared, but a
+    // queued open/message lambda still iterates freed state if pumped later.
+    drain_pending();
 }
 
 // ---------------------------------------------------------------------------
@@ -138,6 +155,10 @@ void SSWebSocket::onBinary(std::function<void(const uint8_t*, size_t)> cb) {
     binary_callbacks_.push_back(std::move(cb));
 }
 
+void SSWebSocket::onOpen(std::function<void()> cb) {
+    open_callbacks_.push_back(std::move(cb));   // same (un)locking model as onMessage
+}
+
 // ---------------------------------------------------------------------------
 // esp_websocket_client event handler (runs on ws client task)
 // ---------------------------------------------------------------------------
@@ -161,6 +182,11 @@ void SSWebSocket::event_handler(void* arg, esp_event_base_t /*base*/,
             cJSON_AddStringToObject(hello, "firmware_version", SSUpdateManager::currentVersion().c_str());
             cJSON_AddStringToObject(hello, "ip",               SSWifiManager::instance().ipAddress().c_str());
             self->send(hello);  // takes ownership
+
+            // Notify open callbacks on the LVGL task (after the hello frame)
+            self->post_fn([self]() {
+                for (auto& cb : self->open_callbacks_) cb();
+            });
             break;
         }
 
@@ -344,6 +370,19 @@ void SSWebSocket::post_fn(std::function<void()> fn) {
 
 void SSWebSocket::pump_timer_cb(lv_timer_t* t) {
     static_cast<SSWebSocket*>(t->user_data)->pump_pending();
+}
+
+void SSWebSocket::drain_pending() {
+    if (!pending_mutex_) {
+        pending_queue_.clear();  // nothing can post without the mutex
+        return;
+    }
+    if (xSemaphoreTake(pending_mutex_, pdMS_TO_TICKS(50)) == pdTRUE) {
+        pending_queue_.clear();
+        xSemaphoreGive(pending_mutex_);
+    } else {
+        ESP_LOGW(TAG, "drain_pending: mutex timeout");
+    }
 }
 
 void SSWebSocket::pump_pending() {

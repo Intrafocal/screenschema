@@ -1,0 +1,35 @@
+schema_version: "1.0"
+
+board: lilygo-t-deck
+
+shell:
+  theme: dark
+  orientation: landscape
+  status_bar: true
+  navigation: gesture
+
+apps:
+  # Inline app — stub emitted to main/handlers_hello_app.cpp
+  - id: hello_app
+    name: "Hello"
+    layout: single_screen
+
+    widgets:
+      - type: label
+        id: greeting_label
+        text: "Hello from ScreenSchema!"
+        align: center
+        style:
+          color: "#FFFFFF"
+
+      - type: button
+        id: tap_btn
+        label: "Tap Me"
+        align: center
+        offset: [0, 80]
+        on_click: handler_tap
+
+    on_init: handler_hello_init
+
+  # Package app — handlers implemented in clock_pkg/handlers.cpp
+  - package: ./clock_pkg

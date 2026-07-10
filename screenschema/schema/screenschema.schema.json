@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://screenschema/schema/screenschema.schema.json",
+  "$comment": "Documentation only — the screenschema CLI does not enforce this file.",
   "title": "ScreenSchema Project",
   "description": "Validates the top-level screenschema.yaml project file",
   "type": "object",
@@ -50,10 +51,13 @@
     },
     "apps": {
       "type": "array",
-      "description": "List of app screens registered with the shell",
+      "description": "List of app screens registered with the shell (inline apps or app package references)",
       "minItems": 1,
       "items": {
-        "$ref": "#/definitions/app"
+        "oneOf": [
+          { "$ref": "#/definitions/app" },
+          { "$ref": "#/definitions/packageRef" }
+        ]
       }
     },
     "assets": {
@@ -94,6 +98,17 @@
     }
   },
   "definitions": {
+    "packageRef": {
+      "type": "object",
+      "required": ["package"],
+      "additionalProperties": false,
+      "properties": {
+        "package": {
+          "type": "string",
+          "description": "Path to an app package directory (containing app.yaml), relative to this yaml file"
+        }
+      }
+    },
     "app": {
       "type": "object",
       "required": ["id"],

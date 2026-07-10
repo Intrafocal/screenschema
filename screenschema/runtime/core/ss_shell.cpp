@@ -49,3 +49,9 @@ bool SSShell::launchApp(const std::string& schema_id) {
 bool SSShell::hasApp(const std::string& schema_id) const {
     return app_ids_.count(schema_id) > 0;
 }
+
+void SSShell::notifyForeground(SSAppBase* app) {
+    if (foreground_app_ == app) return;
+    foreground_app_ = app;
+    ESP_LOGI(TAG, "Foreground app: %p", static_cast<void*>(app));
+}

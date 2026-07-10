@@ -234,11 +234,12 @@ void SSWidgetFactory::registerBuiltins() {
         // present (B15) — the user can type directly via the I2C keyboard's
         // keypad indev, and the LVGL keyboard widget would just obscure the
         // textarea on a 320x240 display.
+        lv_obj_t* kb = nullptr;  // only created when no hardware keyboard (B15)
         if (!s_has_hardware_keyboard) {
             // Create keyboard on the app screen — shown/hidden on focus/defocus.
             // Move to foreground so it renders on top of the scrollable container.
             lv_obj_t* screen = lv_obj_get_screen(parent);
-            lv_obj_t* kb = lv_keyboard_create(screen);
+            kb = lv_keyboard_create(screen);
             lv_obj_set_size(kb, LV_PCT(100), LV_PCT(45));
             lv_obj_align(kb, LV_ALIGN_BOTTOM_MID, 0, 0);
             lv_keyboard_set_textarea(kb, ta);
@@ -267,18 +268,23 @@ void SSWidgetFactory::registerBuiltins() {
             }, LV_EVENT_DEFOCUSED, kb);
         }
 
-        // on_submit: fires when keyboard "Ok" is pressed
+        // on_submit → SSEventType::Submit. Register on the TEXTAREA only:
+        // every submit path delivers LV_EVENT_READY to the textarea exactly
+        // once — hardware Enter / keypad group ('\n' into a one-line textarea),
+        // the on-screen keyboard's newline key (same route), and the on-screen
+        // checkmark (lv_keyboard_def_event_cb sends READY to the keyboard obj
+        // AND forwards it to its textarea). Registering on the kb widget too
+        // would double-publish on checkmark.
         if (!cfg.on_submit.empty()) {
-            std::string* id_ptr = new std::string(cfg.id);
-            lv_obj_add_event_cb(kb, [](lv_event_t* e) {
-                if (lv_event_get_code(e) == LV_EVENT_READY) {
-                    auto* id = static_cast<std::string*>(lv_event_get_user_data(e));
-                    SSEvent evt;
-                    evt.widget_id = *id;
-                    evt.type      = SSEventType::Submit;
-                    SSEventBus::instance().publish(evt);
-                }
-            }, LV_EVENT_READY, static_cast<void*>(id_ptr));
+            auto submit_cb = [](lv_event_t* e) {
+                auto* id = static_cast<std::string*>(lv_event_get_user_data(e));
+                SSEvent evt;
+                evt.widget_id = *id;
+                evt.type      = SSEventType::Submit;
+                SSEventBus::instance().publish(evt);
+            };
+            lv_obj_add_event_cb(ta, submit_cb, LV_EVENT_READY,
+                                static_cast<void*>(new std::string(cfg.id)));
         }
 
         return ta;

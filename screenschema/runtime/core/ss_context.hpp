@@ -45,7 +45,12 @@ public:
     // Direct lv_obj_t access (escape hatch)
     lv_obj_t* raw(const std::string& id) const;
 
-    // Clear all registrations (called on app close)
+    // Remove ONE widget registration and all of its event subscriptions.
+    // Used by SSAppBase::close() to tear down only the closing app's widgets
+    // (paused apps keep their bindings).
+    void remove(const std::string& id);
+
+    // Clear ALL registrations globally (prefer remove() for app teardown)
     void clear();
 
 private:

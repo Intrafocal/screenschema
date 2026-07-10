@@ -48,6 +48,18 @@ public:
     // Register a binary message callback — fires on the LVGL task.
     void onBinary(std::function<void(const uint8_t*, size_t)> cb);
 
+    /// Fired on the LVGL task each time the connection (re)establishes, after
+    /// the hello frame. Use to (re)assert session state. Sends while
+    /// disconnected are DROPPED (with a warning), not queued — do not queue,
+    /// re-assert from onOpen instead.
+    void onOpen(std::function<void()> cb);
+
+    /// Remove ALL registered message/binary/open callbacks and drop any
+    /// queued-but-not-yet-pumped dispatches. Call from the owning object's
+    /// destructor (LVGL task) before its captured closures dangle — the
+    /// SSWebSocket itself may outlive the owner (named registry).
+    void clearCallbacks();
+
     // Send a JSON object. Takes ownership and frees after send.
     // Safe to call from any task.
     void send(cJSON* obj);
@@ -80,6 +92,7 @@ private:
     void post_fn(std::function<void()> fn);
     static void pump_timer_cb(lv_timer_t* t);
     void pump_pending();
+    void drain_pending();  // discard queued dispatches (under pending_mutex_)
 
     esp_websocket_client_handle_t client_ = nullptr;
     std::string url_;
@@ -87,6 +100,7 @@ private:
 
     std::vector<std::function<void(cJSON*)>> message_callbacks_;
     std::vector<std::function<void(const uint8_t*, size_t)>> binary_callbacks_;
+    std::vector<std::function<void()>> open_callbacks_;
 
     SemaphoreHandle_t pending_mutex_ = nullptr;
     std::vector<std::function<void()>> pending_queue_;

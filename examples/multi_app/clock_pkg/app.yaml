@@ -1,0 +1,23 @@
+id: clock_app
+name: "Clock"
+layout: single_screen
+
+widgets:
+  - type: label
+    id: clock_label
+    text: "--:--"
+    align: center
+    style:
+      color: "#3A86FF"
+
+  - type: button
+    id: tick_btn
+    label: "Tick"
+    align: center
+    offset: [0, 80]
+    on_click: handler_clock_tick
+
+on_resume: handler_clock_resume
+
+# Package-only keys
+handlers: handlers.cpp

@@ -8,7 +8,9 @@ idf_component_register(
 {% for icon_src in icon_srcs %}
         "{{ icon_src }}"
 {% endfor %}
-        "handlers.cpp"
+{% for h in handler_srcs %}
+        "{{ h }}"
+{% endfor %}
     INCLUDE_DIRS "."
     REQUIRES runtime esp-brookesia lvgl nvs_flash{% for r in main_requires %} {{ r }}{% endfor %}
 )

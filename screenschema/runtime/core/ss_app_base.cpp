@@ -1,5 +1,6 @@
 #include "ss_app_base.hpp"
 #include "ss_context.hpp"
+#include "ss_shell.hpp"
 #include "esp_log.h"
 #include <string>
 #include <unordered_map>
@@ -42,20 +43,44 @@ bool SSAppBase::run() {
     // before lv_timer_handler can auto-scroll to the focused widget.
     lv_obj_update_layout(container);
     lv_obj_scroll_to_y(container, 0, LV_ANIM_OFF);
+    foreground_ = true;                               // before the user hook
+    SSShell::instance().notifyForeground(this);
+    onResume();
+    return true;
+}
+
+bool SSAppBase::resume() {
+    ESP_LOGI(TAG, "resume()");
+    // Screen was preserved (pause, not close) — do NOT rebuild UI.
+    foreground_ = true;
+    SSShell::instance().notifyForeground(this);
     onResume();
     return true;
 }
 
 bool SSAppBase::pause() {
     ESP_LOGI(TAG, "pause()");
+    foreground_ = false;                              // gate keys before user hook
+    SSShell::instance().notifyForeground(nullptr);    // incoming app re-asserts
     onPause();
     return true;
 }
 
 bool SSAppBase::close() {
     ESP_LOGI(TAG, "close()");
+    foreground_ = false;
+    SSShell::instance().notifyForeground(nullptr);
     onClose();
-    SSContext::instance().clear();
+    app_key_handlers_.clear();   // buildUI closures may capture per-launch state;
+                                 // trampoline stays registered but is inert
+    // Scoped teardown: unregister only THIS app's widgets and their event
+    // subscriptions. A global SSContext::clear() here would kill the bindings
+    // of apps that are merely paused — their screens are preserved and
+    // resume() never rebuilds UI, so they'd come back permanently dead.
+    for (const auto& entry : widget_map_) {
+        SSContext::instance().remove(entry.first);
+    }
+    widget_map_.clear();
     return true;
 }
 
@@ -65,13 +90,29 @@ bool SSAppBase::back() {
     return true;
 }
 
-void SSAppBase::registerWidget(const char* id, lv_obj_t* obj) {
+void SSAppBase::onAppKey(SSInput::KeyHandler handler) {
+    app_key_handlers_.push_back(std::move(handler));
+    if (!key_trampoline_registered_) {
+        key_trampoline_registered_ = true;
+        // One trampoline per app instance. Apps are static in generated main
+        // (main_cpp.j2:430) so `this` never dangles. SSInput registration is
+        // append-only by design — the gate is foreground_, not (de)registration.
+        SSInput::instance().onKey([this](uint8_t key, SSKeySource source) {
+            if (!foreground_) return false;
+            for (auto& h : app_key_handlers_)
+                if (h(key, source)) return true;
+            return false;
+        });
+    }
+}
+
+void SSAppBase::registerWidget(const char* id, lv_obj_t* obj, SSWidgetType type) {
     if (!id || !obj) {
         ESP_LOGW(TAG, "registerWidget called with null id or obj");
         return;
     }
     widget_map_[id] = obj;
-    SSContext::instance().registerWidget(id, obj, SSWidgetType::Custom);
+    SSContext::instance().registerWidget(id, obj, type);
 }
 
 lv_obj_t* SSAppBase::getWidget(const char* id) const {

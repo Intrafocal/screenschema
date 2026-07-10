@@ -220,8 +220,13 @@ lv_obj_t* SSContext::raw(const std::string& id) const {
 }
 
 // ---------------------------------------------------------------------------
-// Clear
+// Remove / Clear
 // ---------------------------------------------------------------------------
+
+void SSContext::remove(const std::string& id) {
+    widgets_.erase(id);
+    SSEventBus::instance().clearWidget(id);
+}
 
 void SSContext::clear() {
     widgets_.clear();

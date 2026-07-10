@@ -1,4 +1,4 @@
-// handlers.cpp — user-editable; screenschema will never overwrite this file.
+// handlers_{{ app.id }}.cpp — user-editable; screenschema will never overwrite this file.
 // Add your event handler implementations here.
 #include "handlers.hpp"
 #include "ss_context.hpp"
@@ -6,7 +6,7 @@
 
 static const char* TAG = "HANDLERS";
 
-{% for handler in all_handlers %}
+{% for handler in stub_handlers %}
 void {{ handler }}(const SSEvent& event) {
     // TODO: implement {{ handler }}
     ESP_LOGI(TAG, "{{ handler }} called");

@@ -29,6 +29,23 @@ void SSEventBus::unsubscribe(const std::string& widget_id, SSEventType type) {
     }
 }
 
+void SSEventBus::clearWidget(const std::string& widget_id) {
+    // Keys are "<widget_id>:<int type>" — erase every event type for this id.
+    // The trailing no-further-colon check keeps widget ids that merely share
+    // a prefix (e.g. "a" vs "a:1") from being swept together.
+    const std::string prefix = widget_id + ":";
+    for (auto it = listeners_.begin(); it != listeners_.end(); ) {
+        const std::string& key = it->first;
+        if (key.size() > prefix.size() &&
+            key.compare(0, prefix.size(), prefix) == 0 &&
+            key.find(':', prefix.size()) == std::string::npos) {
+            it = listeners_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 void SSEventBus::clear() {
     listeners_.clear();
     ESP_LOGI(TAG, "All subscriptions cleared");

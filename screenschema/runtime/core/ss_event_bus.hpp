@@ -32,7 +32,8 @@ public:
     void subscribe(const std::string& widget_id, SSEventType type, SSEventCallback cb);
     void unsubscribe(const std::string& widget_id, SSEventType type);
     void publish(const SSEvent& event);
-    void clear();  // Remove all subscriptions (call when app closes)
+    void clearWidget(const std::string& widget_id);  // Remove all subscriptions for one widget id
+    void clear();  // Remove ALL subscriptions (global — prefer clearWidget for app teardown)
 
 private:
     SSEventBus() = default;

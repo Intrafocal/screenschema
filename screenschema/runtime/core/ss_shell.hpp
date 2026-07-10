@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include "esp_brookesia.hpp"
 
+class SSAppBase;  // forward declaration (avoid include cycle)
+
 class SSShell {
 public:
     static SSShell& instance();
@@ -24,9 +26,15 @@ public:
 
     ESP_Brookesia_Phone* phone() const { return phone_; }
 
+    /// Foreground tracking — called by SSAppBase lifecycle finals (LVGL task).
+    /// notifyForeground(nullptr) = no SS app foreground (launcher/recents/other).
+    void notifyForeground(SSAppBase* app);
+    SSAppBase* foregroundApp() const { return foreground_app_; }
+
 private:
     SSShell() = default;
 
     ESP_Brookesia_Phone* phone_ = nullptr;
+    SSAppBase* foreground_app_ = nullptr;
     std::unordered_map<std::string, int> app_ids_;  // schema_id → brookesia int id
 };

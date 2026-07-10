@@ -38,6 +38,8 @@ set(RUNTIME_SRCS
     "${RUNTIME_DIR}/core/ss_context.cpp"
     "${RUNTIME_DIR}/core/ss_event_bus.cpp"
     "${RUNTIME_DIR}/core/ss_app_base.cpp"
+    "${RUNTIME_DIR}/core/ss_input.cpp"
+    "${RUNTIME_DIR}/core/ss_shell.cpp"
 )
 
 # Generated app sources
@@ -52,7 +54,9 @@ set(APP_SRCS
 
 add_executable(screenschema_sim
     "${CMAKE_CURRENT_SOURCE_DIR}/sim_main.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/main/handlers.cpp"
+{% for h in handler_srcs %}
+    "${CMAKE_CURRENT_SOURCE_DIR}/main/{{ h }}"
+{% endfor %}
     ${RUNTIME_SRCS}
     ${APP_SRCS}
 )

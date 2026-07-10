@@ -1,8 +1,10 @@
 import os
 import pathlib
+import re
 from typing import Dict, Any
 from jinja2 import Environment, FileSystemLoader
 from .asset_pipeline import process_icon
+from .schema import _app_handler_names
 
 
 def generate(schema: Dict[str, Any], board: Dict[str, Any], out_dir: pathlib.Path, project_dir: pathlib.Path):
@@ -43,6 +45,10 @@ def generate(schema: Dict[str, Any], board: Dict[str, Any], out_dir: pathlib.Pat
             app["icon_var"] = None
     ctx["icon_srcs"] = icon_srcs
 
+    # Handler translation units — must run before main_cmakelists.j2 renders
+    # (it sets ctx["handler_srcs"])
+    _emit_handler_sources(env, ctx, main_dir)
+
     # Always regenerated
     _render(env, "main_cpp.j2", ctx, main_dir / "main.cpp")
     _render(env, "cmakelists.j2", ctx, out_dir / "CMakeLists.txt")
@@ -53,14 +59,6 @@ def generate(schema: Dict[str, Any], board: Dict[str, Any], out_dir: pathlib.Pat
         app_ctx = {**ctx, "app": app}
         _render(env, "app_hpp.j2", app_ctx, main_dir / f"{app['class_name']}.hpp")
         _render(env, "app_cpp.j2", app_ctx, main_dir / f"{app['class_name']}.cpp")
-
-    # handlers.cpp: never overwrite if exists
-    handlers_cpp = main_dir / "handlers.cpp"
-    if not handlers_cpp.exists():
-        _render(env, "handlers_cpp.j2", ctx, handlers_cpp)
-    else:
-        # Append stubs for any new handlers not already in the file
-        _append_missing_handlers(ctx, handlers_cpp)
 
     # Write sdkconfig.defaults and partitions.csv
     _write_sdkconfig(schema, board, out_dir)
@@ -108,19 +106,16 @@ def generate_sim(schema: Dict[str, Any], board: Dict[str, Any], out_dir: pathlib
     ctx["sim_dir"] = sim_dir
     ctx["runtime_dir"] = runtime_dir
 
+    # Handler translation units — must run before sim_cmakelists.j2 renders
+    # (it sets ctx["handler_srcs"])
+    _emit_handler_sources(env, ctx, main_dir)
+
     # Generate app code (same as normal build)
     _render(env, "handlers_hpp.j2", ctx, main_dir / "handlers.hpp")
     for app in ctx["apps"]:
         app_ctx = {**ctx, "app": app}
         _render(env, "app_hpp.j2", app_ctx, main_dir / f"{app['class_name']}.hpp")
         _render(env, "app_cpp.j2", app_ctx, main_dir / f"{app['class_name']}.cpp")
-
-    # handlers.cpp: never overwrite if exists
-    handlers_cpp = main_dir / "handlers.cpp"
-    if not handlers_cpp.exists():
-        _render(env, "handlers_cpp.j2", ctx, handlers_cpp)
-    else:
-        _append_missing_handlers(ctx, handlers_cpp)
 
     # Sim-specific files
     _render(env, "sim_main.j2", ctx, out_dir / "sim_main.cpp")
@@ -137,26 +132,38 @@ def _render(env, template_name: str, ctx: dict, out_path: pathlib.Path):
 def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir: pathlib.Path) -> dict:
     apps = []
     all_handlers = set()
+    class_names = {}   # class_name -> app id (derived-name collision check)
 
+    # Package-provided symbols — excluded from every stub set
+    package_handler_names = set()
+    for app_def in schema.get("apps", []):
+        if app_def.get("_package_handlers"):
+            package_handler_names |= _app_handler_names(app_def)
+
+    assigned_stub_names = set()   # inline∩inline dedupe: first declaring app wins
     for app_def in schema.get("apps", []):
         app_id = app_def["id"]
         # Convert snake_case id to PascalCase class name; ensure it ends in "App" exactly once
         pascal = "".join(w.capitalize() for w in app_id.split("_"))
         class_name = pascal if pascal.endswith("App") else pascal + "App"
+        if class_name in class_names:                      # 'foo' vs 'foo_app'
+            raise ValueError(
+                f"apps '{class_names[class_name]}' and '{app_id}' both generate "
+                f"class {class_name} — rename one")
+        class_names[class_name] = app_id
 
-        widgets = []
-        for w in app_def.get("widgets", []):
-            widget = dict(w)
-            # Collect all handler names
-            for key in ("on_click", "on_long_press", "on_change", "on_release", "on_submit", "on_select"):
-                if key in widget and widget[key]:
-                    all_handlers.add(widget[key])
-            widgets.append(widget)
+        widgets = [dict(w) for w in app_def.get("widgets", [])]
+        names = _app_handler_names(app_def)
+        all_handlers |= names
 
-        # Collect app-level handlers
-        for key in ("on_init", "on_resume", "on_pause", "on_close"):
-            if key in app_def and app_def[key]:
-                all_handlers.add(app_def[key])
+        if app_def.get("_package_handlers"):
+            stub_names = set()                             # package file is authoritative
+        else:
+            provided = names & package_handler_names
+            for h in sorted(provided):
+                print(f"note: handler '{h}' in app '{app_id}' provided by a package app")
+            stub_names = names - package_handler_names - assigned_stub_names
+            assigned_stub_names |= stub_names
 
         apps.append({
             "id": app_id,
@@ -169,6 +176,9 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir
             "on_resume": app_def.get("on_resume"),
             "on_pause": app_def.get("on_pause"),
             "on_close": app_def.get("on_close"),
+            "package_dir":      app_def.get("_package_dir"),
+            "package_handlers": app_def.get("_package_handlers"),
+            "stub_handlers":    sorted(stub_names),
         })
 
     # Board-derived values
@@ -402,12 +412,111 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir
     }
 
 
-def _append_missing_handlers(ctx: dict, handlers_cpp: pathlib.Path):
+def _emit_handler_sources(env, ctx: dict, main_dir: pathlib.Path):
+    """Emit/refresh handler translation units; sets ctx['handler_srcs'].
+
+    Legacy rule: if main_dir/handlers.cpp already exists (pre-package projects
+    where the user owns that file), keep the single-file layout for all inline
+    apps. Otherwise emit one never-overwritten handlers_<app_id>.cpp stub file
+    per inline app. Package apps always get their package handlers file copied
+    (refreshed every build — the package file is the source of truth).
+    """
+    handler_srcs = []
+    legacy = main_dir / "handlers.cpp"
+    inline_apps = [a for a in ctx["apps"] if not a["package_handlers"]]
+
+    # Handler names already DEFINED in a handler source that is COMPILED by
+    # this build (legacy handlers.cpp + handlers_<id>.cpp for current inline
+    # apps). Never stub such a name again: a yaml edit can move a shared
+    # handler's first-declaring app, and re-stubbing the name into another TU
+    # produces a duplicate-symbol link error (the original file keeps the
+    # definition). Orphaned handlers_*.cpp from renamed/removed apps are NOT
+    # scanned — they are excluded from SRCS, so a definition there must not
+    # suppress a stub (that would be an undefined reference at link).
+    _handler_files = [p for p in
+                      [legacy] + [main_dir / f"handlers_{a['id']}.cpp"
+                                  for a in inline_apps]
+                      if p.exists()]
+    _existing_text = "\n".join(f.read_text() for f in _handler_files)
+
+    def _defined_in_existing(name: str) -> bool:
+        # Definition-shaped match ("void <name>(") — a mere CALL of the
+        # handler from another handler must not suppress its stub.
+        return bool(re.search(r"\bvoid\s+" + re.escape(name) + r"\s*\(",
+                              _existing_text))
+
+    if legacy.exists():
+        # Legacy handlers.cpp is user-owned and always compiled. If it already
+        # defines a handler that a package app also provides, the package copy
+        # would collide with it at link time — fail loudly now.
+        legacy_text = legacy.read_text()
+        for app in ctx["apps"]:
+            if not app["package_handlers"]:
+                continue
+            for h in sorted(_app_handler_names(app)):
+                # Definition-shaped match only — legacy code may legitimately
+                # CALL a package-provided handler (declared in handlers.hpp).
+                if re.search(r"\bvoid\s+" + re.escape(h) + r"\s*\(", legacy_text):
+                    raise ValueError(
+                        f"handler '{h}' is defined in legacy {legacy} but is "
+                        f"also provided by package app '{app['id']}' "
+                        f"({app['package_handlers']}) — both files are "
+                        f"compiled, a guaranteed duplicate-symbol link error; "
+                        f"remove it from {legacy} or rename one of them")
+        # Legacy mode compiles only handlers.cpp (+ package copies), so the
+        # only correct definition site for inline stubs is the legacy file —
+        # _append_missing_handlers skips names it already defines.
+        inline_names = sorted({h for a in inline_apps for h in a["stub_handlers"]})
+        _append_missing_handlers(inline_names, legacy)
+        handler_srcs.append("handlers.cpp")
+    else:
+        for app in inline_apps:
+            if not app["stub_handlers"]:
+                continue
+            fname = f"handlers_{app['id']}.cpp"
+            path = main_dir / fname
+            if not path.exists():
+                stub_names = [h for h in app["stub_handlers"]
+                              if not _defined_in_existing(h)]
+                if not stub_names:
+                    continue  # every name already lives in another handler TU
+                _render(env, "handlers_cpp.j2",
+                        {**ctx, "app": app, "stub_handlers": stub_names},
+                        path)
+            else:
+                _append_missing_handlers(
+                    [h for h in app["stub_handlers"]
+                     if not _defined_in_existing(h)], path)
+            handler_srcs.append(fname)
+
+    for app in ctx["apps"]:
+        if not app["package_handlers"]:
+            continue
+        fname = f"handlers_{app['id']}.cpp"
+        src = app["package_handlers"]
+        content = (
+            f"// GENERATED COPY of {src} — DO NOT EDIT; edit the package file.\n"
+            f'#line 1 "{src}"\n'
+            + pathlib.Path(src).read_text()
+        )
+        dst = main_dir / fname
+        if not dst.exists() or dst.read_text() != content:   # avoid rebuild churn
+            dst.write_text(content)
+        handler_srcs.append(fname)
+
+    ctx["handler_srcs"] = handler_srcs
+
+
+def _append_missing_handlers(handler_names, handlers_cpp: pathlib.Path):
     existing = handlers_cpp.read_text()
     stubs = []
-    for handler in ctx["all_handlers"]:
-        if handler and handler not in existing:
-            stubs.append(f'\nvoid {handler}(const SSEvent& e) {{\n    // TODO: implement {handler}\n}}\n')
+    for handler in handler_names:
+        # Definition-shaped match — a call to the handler elsewhere in the
+        # file must not suppress its stub (undefined reference otherwise).
+        if handler and not re.search(
+                r"\bvoid\s+" + re.escape(handler) + r"\s*\(", existing):
+            stubs.append(f'\nvoid {handler}(const SSEvent& e) {{\n'
+                         f'    // TODO: implement {handler}\n}}\n')
     if stubs:
         with open(handlers_cpp, "a") as f:
             f.write("\n// === Added by screenschema (new handlers) ===\n")

@@ -19,16 +19,20 @@ def build(yaml_path, out):
     from .codegen import generate
 
     yaml_path = pathlib.Path(yaml_path).resolve()
-    schema = load_schema(yaml_path)
-    board = BoardRegistry().get(schema["board"])
+    try:
+        schema = load_schema(yaml_path)
+        board = BoardRegistry().get(schema["board"])
 
-    if out is None:
-        out_dir = yaml_path.parent / "build" / "generated"
-    else:
-        out_dir = pathlib.Path(out).resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
+        if out is None:
+            out_dir = yaml_path.parent / "build" / "generated"
+        else:
+            out_dir = pathlib.Path(out).resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    generate(schema, board, out_dir, yaml_path.parent)
+        generate(schema, board, out_dir, yaml_path.parent)
+    except ValueError as e:
+        click.echo(f"ERROR: {e}", err=True)
+        raise SystemExit(1)
     click.echo(f"Generated project at: {out_dir}")
 
 
