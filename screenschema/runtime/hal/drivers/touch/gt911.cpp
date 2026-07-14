@@ -175,13 +175,13 @@ uint8_t SSTouchGT911::read(SSTouchPoint* points, uint8_t max_points) {
         return 0;
     }
 
-    // Throttled coordinate log — tap the display corners to verify the
-    // swap/mirror transform against the panel from the serial console.
+    // Throttled coordinate log (debug) — tap the display corners to verify
+    // the swap/mirror transform from the serial console.
     static uint32_t s_last_log_ms = 0;
     uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
     if (now_ms - s_last_log_ms > 300) {
         s_last_log_ms = now_ms;
-        ESP_LOGI(TAG, "touch (%u, %u) n=%u", touch_x[0], touch_y[0], touch_cnt);
+        ESP_LOGD(TAG, "touch (%u, %u) n=%u", touch_x[0], touch_y[0], touch_cnt);
     }
 
     uint8_t out = (touch_cnt < max_points) ? touch_cnt : max_points;
