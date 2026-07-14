@@ -105,9 +105,12 @@ esp_err_t SSTouchGT911::init() {
     }
 
     // 4. Configure and create GT911 touch handle
+    // x_max/y_max are in the RAW (pre-transform) touch frame: esp_lcd_touch
+    // applies mirror_x/y before swap_xy, so with swap_xy set the raw frame is
+    // (height, width) of the final display orientation.
     esp_lcd_touch_config_t touch_cfg = {
-        .x_max       = (uint16_t)cfg_.width,
-        .y_max       = (uint16_t)cfg_.height,
+        .x_max       = (uint16_t)(cfg_.swap_xy ? cfg_.height : cfg_.width),
+        .y_max       = (uint16_t)(cfg_.swap_xy ? cfg_.width : cfg_.height),
         .rst_gpio_num = (gpio_num_t)cfg_.rst_gpio,
         .int_gpio_num = (gpio_num_t)cfg_.int_gpio,
         .levels = {
@@ -170,6 +173,15 @@ uint8_t SSTouchGT911::read(SSTouchPoint* points, uint8_t max_points) {
             points[0].pressed = false;
         }
         return 0;
+    }
+
+    // Throttled coordinate log — tap the display corners to verify the
+    // swap/mirror transform against the panel from the serial console.
+    static uint32_t s_last_log_ms = 0;
+    uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    if (now_ms - s_last_log_ms > 300) {
+        s_last_log_ms = now_ms;
+        ESP_LOGI(TAG, "touch (%u, %u) n=%u", touch_x[0], touch_y[0], touch_cnt);
     }
 
     uint8_t out = (touch_cnt < max_points) ? touch_cnt : max_points;

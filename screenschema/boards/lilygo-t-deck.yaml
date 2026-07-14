@@ -40,8 +40,11 @@ touch:
   scl: 8
   rst_gpio: -1
   int_gpio: 16
-  swap_xy: false
-  mirror_x: false
+  # The GT911 reports in the panel's native portrait frame (240x320); mirror
+  # esp_lcd_touch applies mirrors pre-swap, same convention as the display's
+  # MADCTL, so these match the display's rotation: 3 (swap_xy + mirror_x).
+  swap_xy: true
+  mirror_x: true
   mirror_y: false
 
 keyboard:
