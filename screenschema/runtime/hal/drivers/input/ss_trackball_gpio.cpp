@@ -89,11 +89,28 @@ void SSTrackballGPIO::read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
 
     // Edge-scroll: rolling against a screen edge scrolls the scrollable under
     // the cursor (only while not pressed — a held click is LVGL's own drag).
+    // The object pinned under the cursor may be a non-scrollable overlay
+    // (e.g. the brookesia status bar at the top edge), so probe progressively
+    // inward from the edge until something scrollable is hit.
     if (!pressed && (over_x != 0 || over_y != 0)) {
-        lv_point_t p = { self->cursor_x_, self->cursor_y_ };
-        lv_obj_t* target = lv_indev_search_obj(lv_scr_act(), &p);
-        while (target && !lv_obj_has_flag(target, LV_OBJ_FLAG_SCROLLABLE)) {
-            target = lv_obj_get_parent(target);
+        // "Scrollable" flag alone isn't enough — LVGL screens carry it by
+        // default with no overflow — so require actual room in the direction
+        // being scrolled.
+        auto can_scroll = [&](lv_obj_t* o) {
+            if (!lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLLABLE)) return false;
+            return (over_y > 0 && lv_obj_get_scroll_bottom(o) > 0) ||
+                   (over_y < 0 && lv_obj_get_scroll_top(o)    > 0) ||
+                   (over_x > 0 && lv_obj_get_scroll_right(o)  > 0) ||
+                   (over_x < 0 && lv_obj_get_scroll_left(o)   > 0);
+        };
+        lv_obj_t* target = nullptr;
+        for (int inset = 0; inset <= 60 && !target; inset += 20) {
+            lv_point_t p = { self->cursor_x_, self->cursor_y_ };
+            if (over_x > 0) p.x -= inset; else if (over_x < 0) p.x += inset;
+            if (over_y > 0) p.y -= inset; else if (over_y < 0) p.y += inset;
+            lv_obj_t* hit = lv_indev_search_obj(lv_scr_act(), &p);
+            while (hit && !can_scroll(hit)) hit = lv_obj_get_parent(hit);
+            target = hit;
         }
         if (target) {
             // Rolling down at the bottom edge reveals content below → content

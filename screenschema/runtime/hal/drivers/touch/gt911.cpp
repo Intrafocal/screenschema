@@ -82,6 +82,9 @@ esp_err_t SSTouchGT911::init() {
 
     // 3. Create I2C panel IO for GT911
     esp_lcd_panel_io_handle_t io = nullptr;
+    // Field values must match ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG() — in
+    // particular disable_control_phase=1: with the control phase enabled the
+    // component's register reads are mis-framed and silently return zeros.
     esp_lcd_panel_io_i2c_config_t io_config = {
         .dev_addr            = dev_addr,
         .on_color_trans_done = nullptr,
@@ -89,10 +92,10 @@ esp_err_t SSTouchGT911::init() {
         .control_phase_bytes = 1,
         .dc_bit_offset       = 0,
         .lcd_cmd_bits        = 16,
-        .lcd_param_bits      = 8,
+        .lcd_param_bits      = 0,
         .flags               = {
             .dc_low_on_data  = 0,
-            .disable_control_phase = 0,
+            .disable_control_phase = 1,
         },
     };
     ret = esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)I2C_NUM_0, &io_config, &io);
