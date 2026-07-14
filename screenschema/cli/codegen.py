@@ -381,6 +381,7 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir
         # Early init (D6 — power gates)
         "early_init_gpio_high": early_init.get("gpio_set_high", []),
         "early_init_gpio_low":  early_init.get("gpio_set_low", []),
+        "early_init_settle_ms": early_init.get("settle_ms", 50),
         # Keyboard (D2)
         "has_keyboard":       keyboard.get("driver", "none") != "none",
         "keyboard_driver":    keyboard.get("driver", "none"),
@@ -396,6 +397,7 @@ def _build_context(schema: dict, board: dict, project_dir: pathlib.Path, out_dir
         "trackball_pin_right": trackball.get("pin_right", -1),
         "trackball_pin_click": trackball.get("pin_click", -1),
         "trackball_step_px":  trackball.get("step_px", 10),
+        "trackball_long_press_ms": trackball.get("long_press_ms", 800),
         # Battery (D9)
         "has_battery":            bool(battery),
         "battery_adc_gpio":       battery.get("adc_gpio", -1),

@@ -5,6 +5,8 @@ chip: esp32s3
 early_init:
   gpio_set_high: [10]    # Power gate — must be HIGH before any peripheral responds
   gpio_set_low: [9]      # LoRa CS deassert (unpopulated but good practice)
+  settle_ms: 500         # Keyboard MCU (ESP32-C3) and GT911 need ~500ms after
+                         # the power gate before they respond on I2C
 
 display:
   width: 320

@@ -2,8 +2,25 @@
 #include "esp_log.h"
 #include "driver/i2c.h"
 #include "esp_lcd_panel_io.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char* TAG = "SS_GT911";
+
+// The GT911 straps to I2C address 0x5D or 0x14 depending on the INT level at
+// power-up; boards without a wired reset line (e.g. T-Deck) can't force it.
+// A chip that isn't ready yet ACKs but reads the product-ID register (0x8140,
+// expected "911") as all zeros — so validate the ID, not just the ACK.
+static bool gt911_probe(uint8_t addr) {
+    const uint8_t reg[2] = { 0x81, 0x40 };
+    uint8_t id[4] = { 0 };
+    esp_err_t err = i2c_master_write_read_device(I2C_NUM_0, addr, reg, sizeof(reg),
+                                                 id, sizeof(id), pdMS_TO_TICKS(50));
+    if (err != ESP_OK) return false;
+    if (id[0] == 0) return false;
+    ESP_LOGI(TAG, "GT911 found at 0x%02X (ID: %c%c%c)", addr, id[0], id[1], id[2]);
+    return true;
+}
 
 SSTouchGT911::SSTouchGT911(const SSTouchGT911Config& cfg)
     : cfg_(cfg) {}
@@ -47,10 +64,26 @@ esp_err_t SSTouchGT911::init() {
         return ret;
     }
 
-    // 2. Create I2C panel IO for GT911
+    // 2. Find the chip — probe primary then alternate address, with retries
+    //    in case the power gate only just came up.
+    uint8_t dev_addr = 0;
+    for (int attempt = 0; attempt < 3 && dev_addr == 0; attempt++) {
+        if (attempt > 0) vTaskDelay(pdMS_TO_TICKS(100));
+        if (gt911_probe(ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS)) {
+            dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS;
+        } else if (gt911_probe(0x14)) {
+            dev_addr = 0x14;
+        }
+    }
+    if (dev_addr == 0) {
+        ESP_LOGE(TAG, "GT911 not responding at 0x5D or 0x14 — touch disabled");
+        return ESP_FAIL;
+    }
+
+    // 3. Create I2C panel IO for GT911
     esp_lcd_panel_io_handle_t io = nullptr;
     esp_lcd_panel_io_i2c_config_t io_config = {
-        .dev_addr            = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS,
+        .dev_addr            = dev_addr,
         .on_color_trans_done = nullptr,
         .user_ctx            = nullptr,
         .control_phase_bytes = 1,
@@ -68,7 +101,7 @@ esp_err_t SSTouchGT911::init() {
         return ret;
     }
 
-    // 3. Configure and create GT911 touch handle
+    // 4. Configure and create GT911 touch handle
     esp_lcd_touch_config_t touch_cfg = {
         .x_max       = (uint16_t)cfg_.width,
         .y_max       = (uint16_t)cfg_.height,
@@ -93,7 +126,7 @@ esp_err_t SSTouchGT911::init() {
         return ret;
     }
 
-    // 4. Register LVGL input device
+    // 5. Register LVGL input device
     lv_indev_drv_init(&indev_drv_);
     indev_drv_.type      = LV_INDEV_TYPE_POINTER;
     indev_drv_.read_cb   = read_cb;

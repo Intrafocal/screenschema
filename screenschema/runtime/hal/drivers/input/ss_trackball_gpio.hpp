@@ -3,12 +3,17 @@
 #include "esp_err.h"
 #include "driver/gpio.h"
 #include <cstdint>
+#include <functional>
 
 struct SSTrackballGPIOConfig {
     int pin_up, pin_down, pin_left, pin_right, pin_click;
     int width;        // display width — used to clamp the virtual cursor
     int height;       // display height
     int step_px;      // pixels moved per detected edge (typical: 10)
+    int long_press_ms = 800;  // hold-click-without-rolling threshold; 0 disables
+    // Fired once per hold when long_press_ms elapses (deferred via
+    // lv_async_call, so it may safely close apps / rebuild the widget tree).
+    std::function<void()> on_long_press;
 };
 
 /// GPIO trackball driver — exposes the LilyGO-style optical trackball as an
@@ -36,10 +41,17 @@ private:
     int16_t cursor_x_ = 0;
     int16_t cursor_y_ = 0;
 
-    // Edge detection — last polled level for each input pin
+    // Edge detection — last polled level for each direction pin
     bool last_level_[5] = { true, true, true, true, true };  // pull-ups → idle high
+
+    // Click / long-press state
+    bool     was_pressed_  = false;
+    bool     press_moved_  = false;  // rolled while held → drag, not long-press
+    bool     long_fired_   = false;  // long-press consumed this hold
+    uint32_t press_start_  = 0;      // lv_tick at press edge
 
     bool first_event_logged_ = false;  // one-shot debug confirmation
 
     static void read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data);
+    static void long_press_async(void* self_ptr);
 };

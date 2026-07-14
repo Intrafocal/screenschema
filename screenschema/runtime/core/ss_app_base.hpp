@@ -18,6 +18,11 @@ public:
     /// True while this app is the foreground (visible) app.
     bool isForeground() const { return foreground_; }
 
+    /// Programmatic back — same path as brookesia's back gesture/navigation
+    /// bar. Public so the shell can drive it from non-touch inputs (e.g.
+    /// trackball long-press). LVGL task only.
+    bool requestBack() { return back(); }
+
 protected:
     // Generated app implements this to create widgets. Called by init() after screen is created.
     virtual void buildUI(lv_obj_t* screen) = 0;

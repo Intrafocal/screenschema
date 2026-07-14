@@ -31,6 +31,11 @@ public:
     void notifyForeground(SSAppBase* app);
     SSAppBase* foregroundApp() const { return foreground_app_; }
 
+    /// Back-navigate the foreground app (no-op on the launcher). Drives the
+    /// same path as brookesia's back gesture; for non-touch inputs like the
+    /// trackball long-press. LVGL task only.
+    void navigateBack();
+
 private:
     SSShell() = default;
 

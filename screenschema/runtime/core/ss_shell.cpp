@@ -1,4 +1,5 @@
 #include "ss_shell.hpp"
+#include "ss_app_base.hpp"
 #include "esp_log.h"
 
 static const char* TAG = "SS_SHELL";
@@ -54,4 +55,13 @@ void SSShell::notifyForeground(SSAppBase* app) {
     if (foreground_app_ == app) return;
     foreground_app_ = app;
     ESP_LOGI(TAG, "Foreground app: %p", static_cast<void*>(app));
+}
+
+void SSShell::navigateBack() {
+    if (!foreground_app_) {
+        ESP_LOGD(TAG, "navigateBack: no foreground app");
+        return;
+    }
+    ESP_LOGI(TAG, "navigateBack → foreground app");
+    foreground_app_->requestBack();
 }

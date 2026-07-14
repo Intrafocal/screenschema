@@ -10,63 +10,111 @@ SSTrackballGPIO::SSTrackballGPIO(const SSTrackballGPIOConfig& cfg)
     cursor_y_ = cfg_.height / 2;
 }
 
+void SSTrackballGPIO::long_press_async(void* self_ptr) {
+    auto* self = static_cast<SSTrackballGPIO*>(self_ptr);
+    if (self->cfg_.on_long_press) self->cfg_.on_long_press();
+}
+
 void SSTrackballGPIO::read_cb(lv_indev_drv_t* drv, lv_indev_data_t* data) {
     auto* self = static_cast<SSTrackballGPIO*>(drv->user_data);
 
-    // Pin order matches LILYGO's reference: right, up, left, down, click.
+    // Pin order matches LILYGO's reference: right, up, left, down.
     // Each transition (rising or falling edge) on a direction pin moves the
     // virtual cursor by step_px pixels.  We don't care about high vs low —
     // only that the level changed since the last poll.
-    const int pins[5] = {
+    const int dir_pins[4] = {
         self->cfg_.pin_right,
         self->cfg_.pin_up,
         self->cfg_.pin_left,
         self->cfg_.pin_down,
-        self->cfg_.pin_click,
     };
 
-    bool click_pressed = false;
-    bool any_event = false;
-    int  step       = self->cfg_.step_px > 0 ? self->cfg_.step_px : 10;
+    bool moved = false;
+    int  step   = self->cfg_.step_px > 0 ? self->cfg_.step_px : 10;
+    int  over_x = 0;  // movement swallowed by the screen-edge clamp this poll
+    int  over_y = 0;
 
-    for (int i = 0; i < 5; i++) {
-        bool level = gpio_get_level((gpio_num_t)pins[i]) != 0;
+    for (int i = 0; i < 4; i++) {
+        bool level = gpio_get_level((gpio_num_t)dir_pins[i]) != 0;
         if (level != self->last_level_[i]) {
             self->last_level_[i] = level;
-            any_event = true;
+            moved = true;
             switch (i) {
                 case 0:  // right
                     self->cursor_x_ += step;
-                    if (self->cursor_x_ >= self->cfg_.width)  self->cursor_x_ = self->cfg_.width - 1;
+                    if (self->cursor_x_ >= self->cfg_.width) {
+                        over_x += self->cursor_x_ - (self->cfg_.width - 1);
+                        self->cursor_x_ = self->cfg_.width - 1;
+                    }
                     break;
                 case 1:  // up
                     self->cursor_y_ -= step;
-                    if (self->cursor_y_ < 0) self->cursor_y_ = 0;
+                    if (self->cursor_y_ < 0) { over_y += self->cursor_y_; self->cursor_y_ = 0; }
                     break;
                 case 2:  // left
                     self->cursor_x_ -= step;
-                    if (self->cursor_x_ < 0) self->cursor_x_ = 0;
+                    if (self->cursor_x_ < 0) { over_x += self->cursor_x_; self->cursor_x_ = 0; }
                     break;
                 case 3:  // down
                     self->cursor_y_ += step;
-                    if (self->cursor_y_ >= self->cfg_.height) self->cursor_y_ = self->cfg_.height - 1;
-                    break;
-                case 4:  // click
-                    click_pressed = true;
+                    if (self->cursor_y_ >= self->cfg_.height) {
+                        over_y += self->cursor_y_ - (self->cfg_.height - 1);
+                        self->cursor_y_ = self->cfg_.height - 1;
+                    }
                     break;
             }
         }
     }
 
-    if (!self->first_event_logged_ && any_event) {
+    // Click is level-based (active low, pull-up): holding the ball down keeps
+    // LV_INDEV_STATE_PRESSED asserted, so hold+roll works as an LVGL drag.
+    bool pressed = gpio_get_level((gpio_num_t)self->cfg_.pin_click) == 0;
+
+    if (pressed && !self->was_pressed_) {
+        self->press_start_ = lv_tick_get();
+        self->press_moved_ = false;
+        self->long_fired_  = false;
+    }
+    if (pressed && moved) self->press_moved_ = true;  // drag intent, not long-press
+    if (pressed && !self->long_fired_ && !self->press_moved_ &&
+        self->cfg_.long_press_ms > 0 && self->cfg_.on_long_press &&
+        lv_tick_elaps(self->press_start_) >= (uint32_t)self->cfg_.long_press_ms) {
+        self->long_fired_ = true;
+        // Cancel the in-flight press so the widget under the cursor doesn't
+        // also get CLICKED on release, and defer the action out of the indev
+        // read — it may delete the widget tree under us.
+        lv_indev_reset(self->indev_, nullptr);
+        lv_async_call(long_press_async, self);
+    }
+
+    // Edge-scroll: rolling against a screen edge scrolls the scrollable under
+    // the cursor (only while not pressed — a held click is LVGL's own drag).
+    if (!pressed && (over_x != 0 || over_y != 0)) {
+        lv_point_t p = { self->cursor_x_, self->cursor_y_ };
+        lv_obj_t* target = lv_indev_search_obj(lv_scr_act(), &p);
+        while (target && !lv_obj_has_flag(target, LV_OBJ_FLAG_SCROLLABLE)) {
+            target = lv_obj_get_parent(target);
+        }
+        if (target) {
+            // Rolling down at the bottom edge reveals content below → content
+            // moves up → negative delta (same convention as touch drag).
+            lv_obj_scroll_by_bounded(target, -over_x, -over_y, LV_ANIM_OFF);
+        }
+    }
+
+    if (!self->first_event_logged_ && (moved || pressed != self->was_pressed_)) {
         ESP_LOGI(TAG, "First trackball event detected — driver alive (cursor=%d,%d click=%d)",
-                 self->cursor_x_, self->cursor_y_, click_pressed);
+                 self->cursor_x_, self->cursor_y_, pressed);
         self->first_event_logged_ = true;
     }
+    self->was_pressed_ = pressed;
 
     data->point.x = self->cursor_x_;
     data->point.y = self->cursor_y_;
-    data->state   = click_pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+    // After a long-press fires, suppress the press until physical release so
+    // LVGL sees the hold as cancelled rather than a fresh press.
+    data->state = (pressed && !self->long_fired_) ? LV_INDEV_STATE_PRESSED
+                                                  : LV_INDEV_STATE_RELEASED;
 }
 
 esp_err_t SSTrackballGPIO::init() {

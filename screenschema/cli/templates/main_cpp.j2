@@ -122,7 +122,9 @@ extern "C" void app_main(void) {
     gpio_set_direction(GPIO_NUM_{{ pin }}, GPIO_MODE_OUTPUT);
     gpio_set_level(GPIO_NUM_{{ pin }}, 0);
 {% endfor %}
-    vTaskDelay(pdMS_TO_TICKS(50));  // Allow power rails to stabilize
+    // Allow power rails AND gated I2C peripherals to come up (the T-Deck's
+    // keyboard MCU and GT911 need ~500ms after the power gate)
+    vTaskDelay(pdMS_TO_TICKS({{ early_init_settle_ms }}));
 {% endif %}
 
     // Device identity — baked at build time (R4.1)
@@ -313,6 +315,9 @@ extern "C" void app_main(void) {
         .height    = {{ display_height }},
         .step_px   = {{ trackball_step_px }},
     };
+    tb_cfg.long_press_ms = {{ trackball_long_press_ms }};
+    // Long-press = back/minimize the foreground app (touchless navigation)
+    tb_cfg.on_long_press = [] { SSShell::instance().navigateBack(); };
     SSTrackballGPIO trackball(tb_cfg);
     if (trackball.init() != ESP_OK) {
         ESP_LOGE(TAG, "Trackball init failed — trackball input disabled");
